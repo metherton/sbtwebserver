@@ -6,6 +6,7 @@ val akkaHttp = "com.typesafe.akka" %% "akka-http"   % "10.1.10"
 val akkaStream = "com.typesafe.akka" %% "akka-stream" % "2.5.23" // or whatever the latest version is
 val jsonSerializer = "com.typesafe.akka" %% "akka-http-spray-json" % "10.1.10"
 val akkaActor = "com.typesafe.akka" %% "akka-actor"   % "2.4.20"
+val cors = "ch.megard" %% "akka-http-cors" % "0.4.2"
 
 
 ThisBuild / scalaVersion     := "2.12.8"
@@ -16,7 +17,7 @@ ThisBuild / organizationName := "martinetherton"
 lazy val root = (project in file("."))
   .settings(
     name := "server",
-    libraryDependencies ++= Seq(scalaTest % Test, akkaHttp, akkaStream, jsonSerializer, akkaActor)
+    libraryDependencies ++= Seq(scalaTest % Test, akkaHttp, akkaStream, jsonSerializer, akkaActor, cors)
   )
 
 enablePlugins(JavaServerAppPackaging)
