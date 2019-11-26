@@ -43,57 +43,68 @@ import ch.megard.akka.http.cors.scaladsl.CorsDirectives._
 
 object WebServer {
 
-  case class Bid(userId: String, offer: Int)
-  case object GetBids
-  case class Bids(bids: List[Bid])
+  // needed to run the route
+  implicit val system = ActorSystem()
+  implicit val materializer = ActorMaterializer()
+  // needed for the future map/flatmap in the end and future in fetchItem and saveOrder
+  implicit val executionContext = system.dispatcher
 
-  class Auction extends Actor with ActorLogging {
-    var bids = List.empty[Bid]
-    def receive = {
-      case bid @ Bid(userId, offer) =>
-        bids = bids :+ bid
-        log.info(s"Bid complete: $userId, $offer")
-      case GetBids => sender() ! Bids(bids)
-      case _       => log.info("Invalid message")
+  var orders: List[Item] = Nil
+
+  // domain model
+  final case class Item(name: String, id: Long)
+  final case class Order(items: List[Item])
+
+  // formats for unmarshalling and marshalling
+  implicit val itemFormat = jsonFormat2(Item)
+  implicit val orderFormat = jsonFormat1(Order)
+
+  // (fake) async database query api
+  def fetchItem(itemId: Long): Future[Option[Item]] = Future {
+    orders.find(o => o.id == itemId)
+  }
+  def saveOrder(order: Order): Future[Done] = {
+    orders = order match {
+      case Order(items) => items ::: orders
+      case _            => orders
     }
+    Future { Done }
   }
 
-  // these are from spray-json
-  implicit val bidFormat = jsonFormat2(Bid)
-  implicit val bidsFormat = jsonFormat1(Bids)
-
   def main(args: Array[String]) {
-    implicit val system = ActorSystem()
-    implicit val materializer = ActorMaterializer()
-    // needed for the future flatMap/onComplete in the end
-    implicit val executionContext = system.dispatcher
 
-    val auction = system.actorOf(Props[Auction], "auction")
-
-    val route = cors() {
-      path("auction") {
-        concat(
-          put {
-            parameter('bid.as[Int], 'user ? "marty") { (bid, user) =>
-              // place a bid, fire-and-forget
-              auction ! Bid(user, bid)
-              complete((StatusCodes.Accepted, "bid placed"))
-            }
-          },
-          get {
-            implicit val timeout: Timeout = 5.seconds
-
-            // query the actor for the current auction state
-            val bids: Future[Bids] = (auction ? GetBids).mapTo[Bids]
-            complete(bids)
+    val route: Route =
+      concat(
+        get {
+          path("items") {
+            complete(orders)
           }
-        )
-      }
+        },
+        get {
+          pathPrefix("item" / LongNumber) { id =>
+            // there might be no item for a given id
+            val maybeItem: Future[Option[Item]] = fetchItem(id)
 
-    }
+            onSuccess(maybeItem) {
+              case Some(item) => complete(item)
+              case None       => complete(StatusCodes.NotFound)
+            }
+          }
+        },
+        post {
+          path("create-order") {
+            entity(as[Order]) { order =>
+              val saved: Future[Done] = saveOrder(order)
+              onComplete(saved) { done =>
+                complete("order created")
+              }
+            }
+          }
+        }
+      )
 
-    val bindingFuture = Http().bindAndHandle(route, "141.138.139.81", 8080)
-    println(s"Server online at http://141.138.139.81:8080/\nPress RETURN to stop...")
+    val bindingFuture = Http().bindAndHandle(route, "localhost", 8080)
+    println(s"Server online at http://localhost:8080/\nPress RETURN to stop...")
     StdIn.readLine() // let it run until user presses return
     bindingFuture
       .flatMap(_.unbind()) // trigger unbinding from the port
