@@ -6,7 +6,12 @@ val akkaHttp = "com.typesafe.akka" %% "akka-http"   % "10.1.10"
 val akkaStream = "com.typesafe.akka" %% "akka-stream" % "2.5.23" // or whatever the latest version is
 val jsonSerializer = "com.typesafe.akka" %% "akka-http-spray-json" % "10.1.10"
 val akkaActor = "com.typesafe.akka" %% "akka-actor"   % "2.4.20"
+val persistence = "com.typesafe.akka" %% "akka-persistence-query" % "2.6.0"
 val cors = "ch.megard" %% "akka-http-cors" % "0.4.2"
+val slick1 = "com.typesafe.slick" %% "slick" % "3.3.1"
+val slick2 = "org.slf4j" % "slf4j-nop" % "1.7.26"
+val slick3 = "com.typesafe.slick" %% "slick-hikaricp" % "3.3.1"
+val h2 = "com.h2database" % "h2" % "1.4.199" // See Supported databases, below.
 
 
 ThisBuild / scalaVersion     := "2.12.8"
@@ -17,7 +22,7 @@ ThisBuild / organizationName := "martinetherton"
 lazy val root = (project in file("."))
   .settings(
     name := "server",
-    libraryDependencies ++= Seq(scalaTest % Test, akkaHttp, akkaStream, jsonSerializer, akkaActor, cors)
+    libraryDependencies ++= Seq(scalaTest % Test, akkaHttp, akkaStream, jsonSerializer, akkaActor, cors, persistence, slick1, slick2, slick3, h2)
   )
 
 enablePlugins(JavaServerAppPackaging)
