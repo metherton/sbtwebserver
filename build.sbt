@@ -12,7 +12,7 @@ val slick1 = "com.typesafe.slick" %% "slick" % "3.3.1"
 val slick2 = "org.slf4j" % "slf4j-nop" % "1.7.26"
 val slick3 = "com.typesafe.slick" %% "slick-hikaricp" % "3.3.1"
 val h2 = "com.h2database" % "h2" % "1.4.199" // See Supported databases, below.
-
+val spring = "org.springframework" % "spring" % "2.5.6"
 
 ThisBuild / scalaVersion     := "2.12.8"
 ThisBuild / version          := "0.1.0-SNAPSHOT"
@@ -22,7 +22,7 @@ ThisBuild / organizationName := "martinetherton"
 lazy val root = (project in file("."))
   .settings(
     name := "server",
-    libraryDependencies ++= Seq(scalaTest % Test, akkaHttp, akkaStream, jsonSerializer, akkaActor, cors, persistence, slick1, slick2, slick3, h2)
+    libraryDependencies ++= Seq(scalaTest % Test, akkaHttp, akkaStream, jsonSerializer, akkaActor, cors, persistence, slick1, slick2, slick3, h2, spring)
   )
 
 enablePlugins(JavaServerAppPackaging)
