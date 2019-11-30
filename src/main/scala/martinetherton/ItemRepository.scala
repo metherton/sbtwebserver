@@ -12,7 +12,7 @@ import scala.concurrent.Future
 class ItemRepository(db: slick.jdbc.H2Profile.backend.DatabaseDef) {
 
   class Items(tag: Tag) extends Table[ItemVo](tag, "ITEMS") {
-    def id = column[String]("ID")
+    def id = column[Long]("ID", O.PrimaryKey, O.AutoInc)
     def name = column[String]("ITEM_NAME")
     def * = (id, name) <> (ItemVo.tupled, ItemVo.unapply)
     // A reified foreign key relation that can be navigated to create a join
