@@ -29,14 +29,12 @@ import scala.io.StdIn
 
 object WebServer extends App {
 
+  import Marshallers._
+
   implicit val system = ActorSystem("my-system")
   implicit val materializer = ActorMaterializer()
   // needed for the future flatMap/onComplete in the end
   implicit val executionContext = system.dispatcher
-
-  implicit val itemFormat = jsonFormat2(Item)
-  implicit val orderFormat = jsonFormat1(Order)
-  implicit val itemVoFormat = jsonFormat2(ItemVo)
 
   val sm = new SystemModule()
 
