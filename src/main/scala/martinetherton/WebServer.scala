@@ -1,7 +1,11 @@
 package martinetherton
 // for JSON serialization/deserialization following dependency is required:
 // "com.typesafe.akka" %% "akka-http-spray-json" % "10.1.7"
+import akka.Done
+import akka.http.scaladsl.model.StatusCodes
 import spray.json.DefaultJsonProtocol.{jsonFormat1, jsonFormat2}
+
+import scala.concurrent.Future
 // for JSON serialization/deserialization following dependency is required:
 // "com.typesafe.akka" %% "akka-http-spray-json" % "10.1.7"
 // for JSON serialization/deserialization following dependency is required:
@@ -36,15 +40,24 @@ object WebServer extends App {
   // needed for the future flatMap/onComplete in the end
   implicit val executionContext = system.dispatcher
 
-  val sm = new SystemModule()
+  val sm = SystemModule
 
   val route =
-    get {
-      path("items") {
-        val result = sm.itemRepository.findAllItems()
-        complete(result)
-      }
+    path("items") {
+      concat(
+        get {
+          val result = sm.itemRepo.findAllItems()
+          complete(result)
+        },
+        post {
+          val result = sm.itemRepo.saveItem(ItemVo(4L, "newone"))
+          onComplete(result) { done =>
+            complete("order created")
+          }
+        }
+      )
     }
+
   val bindingFuture = Http().bindAndHandle(route, "localhost", 8080)
 
   println(s"Server online at http://localhost:8080/\nPress RETURN to stop...")
