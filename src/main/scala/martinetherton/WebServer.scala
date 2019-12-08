@@ -95,7 +95,32 @@ object WebServer extends App {
       )
     }
 
-  val bindingFuture = Http().bindAndHandle(route, "localhost", 8080)
+  val route1 =
+    path("messages") {
+      concat(
+        get {
+          val messagesAction: DBIO[Seq[Message]] = messages.result
+          val messagesFuture: Future[Seq[Message]] = db.run(messagesAction)
+
+          //     val messagesResults = result(messagesFuture, 2.seconds)
+          //          val sql = messages.result.statements.mkString
+          complete(messagesFuture)
+
+        },
+        post {
+          def newMessage = Seq(
+            Message("Martin", "This is my new message")
+          )
+          val ins: DBIO[Option[Int]] = messages ++= newMessage
+          val insAct: Future[Option[Int]] = db.run(ins)
+          onComplete(insAct) { done =>
+            complete("new message added")
+          }
+        }
+      )
+    }
+
+  val bindingFuture = Http().bindAndHandle(route ~ route1, "localhost", 8080)
 
   println(s"Server online at http://localhost:8080/\nPress RETURN to stop...")
   StdIn.readLine() // let it run until user presses return
