@@ -1,11 +1,4 @@
 package martinetherton
-
-
-import akka.Done
-import akka.http.scaladsl.model.StatusCodes
-import spray.json.DefaultJsonProtocol.{jsonFormat1, jsonFormat2}
-
-import scala.concurrent.Future
 // for JSON serialization/deserialization following dependency is required:
 // "com.typesafe.akka" %% "akka-http-spray-json" % "10.1.7"
 // for JSON serialization/deserialization following dependency is required:
@@ -18,9 +11,6 @@ import akka.stream.ActorMaterializer
 import spray.json.DefaultJsonProtocol._
 
 import scala.io.StdIn
-
-import akka.actor.ActorSystem
-import akka.stream.ActorMaterializer
 
 
 

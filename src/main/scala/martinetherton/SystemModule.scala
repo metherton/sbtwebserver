@@ -1,6 +1,4 @@
 package martinetherton
-
-import slick.jdbc.H2Profile.api._
 //object SystemModule {
 //
 //}

@@ -1,5 +1,5 @@
 import Dependencies._
-import NativePackagerHelper._
+import com.typesafe.sbt.SbtNativePackager.autoImport.NativePackagerHelper._
 
 
 val akkaHttp = "com.typesafe.akka" %% "akka-http"   % "10.1.10"
