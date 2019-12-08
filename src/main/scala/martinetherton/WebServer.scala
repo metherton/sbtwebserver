@@ -74,7 +74,7 @@ object WebServer extends App {
 
             val insAct = repo.insert(message)
             onComplete(insAct) { done =>
-              complete("new message added")
+              complete(s"new message added with id: ${insAct}")
             }
           }
         }

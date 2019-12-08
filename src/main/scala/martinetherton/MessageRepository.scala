@@ -7,8 +7,6 @@ import martinetherton.Message
 
 class MessageRepository {
 
-
-
   class MessageTable(tag: Tag) extends Table[Message](tag, "message") {
     def id = column[Long]("id", O.PrimaryKey, O.AutoInc)
     def sender = column[String]("sender")
@@ -42,8 +40,6 @@ class MessageRepository {
 
   val rowCount = Await.result(insertAction, 2.seconds)
 
-
-
   def exec[T](action: DBIO[T]): Future[T] =
     db.run(action)
 
@@ -56,7 +52,7 @@ class MessageRepository {
   def insert(message: Message) = {
 
 
-    val ins = messages += message
+    val ins = messages returning messages.map(_.id) += message
     val insAct = exec(ins)
     insAct
   }
