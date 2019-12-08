@@ -28,14 +28,14 @@ import akka.stream.ActorMaterializer
 object WebServer extends App {
 
   import slick.jdbc.H2Profile.api._
-  case class Message(sender: String, content: String, id: Long = 0L)
+  case class Message(sender: String, content: String, id: Option[Long] = None)
   implicit val messageFormat = jsonFormat3(Message)
 
   class MessageTable(tag: Tag) extends Table[Message](tag, "message") {
     def id = column[Long]("id", O.PrimaryKey, O.AutoInc)
     def sender = column[String]("sender")
     def content = column[String]("content")
-    def * = (sender, content, id).mapTo[Message]
+    def * = (sender, content, id.?).mapTo[Message]
   }
 
   val messages = TableQuery[MessageTable]
@@ -53,10 +53,10 @@ object WebServer extends App {
   val result = Await.result(future, 2.seconds)
 
   def freshTestData = Seq(
-    Message("Dave", "Hello, HAL. Do you read me, HAL?"),
-    Message("HAL", "Affirmative, Dave. I read you."),
-    Message("Dave", "Open the pod bay doors, HAL."),
-    Message("HAL", "I'm sorry, Dave. I'm afraid I can't do that.")
+    Message("Dave", "Hello, HAL. Do you read me, HAL?", None),
+    Message("HAL", "Affirmative, Dave. I read you.", None),
+    Message("Dave", "Open the pod bay doors, HAL.", None),
+    Message("HAL", "I'm sorry, Dave. I'm afraid I can't do that.", None)
   )
 
   val insert: DBIO[Option[Int]] = messages ++= freshTestData
