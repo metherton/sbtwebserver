@@ -69,6 +69,8 @@ object WebServer extends App {
   // needed for the future flatMap/onComplete in the end
   implicit val executionContext = system.dispatcher
 
+  def exec[T](action: DBIO[T]): Future[T] =
+    db.run(action)
 
   val route =
     path("items") {
@@ -108,13 +110,16 @@ object WebServer extends App {
 
         },
         post {
-          def newMessage = Seq(
-            Message("Martin", "This is my new message")
-          )
-          val ins: DBIO[Option[Int]] = messages ++= newMessage
-          val insAct: Future[Option[Int]] = db.run(ins)
-          onComplete(insAct) { done =>
-            complete("new message added")
+          entity(as[Message]) { message =>
+   //         def newMessage = Seq(
+   //           Message("Martin", "This is my new message")
+   //         )
+
+            val ins = messages += message
+            val insAct = exec(ins)
+            onComplete(insAct) { done =>
+              complete("new message added")
+            }
           }
         }
       )
