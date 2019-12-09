@@ -12,21 +12,18 @@ import spray.json.DefaultJsonProtocol._
 
 import scala.io.StdIn
 
-
-
-
 object WebServer extends App {
 
   import slick.jdbc.H2Profile.api._
 
-  implicit val messageFormat = jsonFormat3(Message)
+  implicit val messageFormat = jsonFormat3(Person)
 
   implicit val system = ActorSystem("my-system")
   implicit val materializer = ActorMaterializer()
   // needed for the future flatMap/onComplete in the end
   implicit val executionContext = system.dispatcher
 
-  val repo = new MessageRepository
+  val repo = new PersonRepository
 
 //  val route =
 //    path("items") {
@@ -54,27 +51,27 @@ object WebServer extends App {
 //    }
 
   val route1 =
-    path("messages") {
+    path("persons") {
       concat(
         get {
 
-          import martinetherton.MessageRepository
+          import martinetherton.PersonRepository
           //     val messagesResults = result(messagesFuture, 2.seconds)
           //          val sql = messages.result.statements.mkString
 
-          val result = repo.getMessages
+          val result = repo.getPersons
           complete(result)
 
         },
         post {
-          entity(as[Message]) { message =>
+          entity(as[Person]) { person =>
    //         def newMessage = Seq(
    //           Message("Martin", "This is my new message")
    //         )
 
-            val insAct = repo.insert(message)
+            val insAct = repo.insert(person)
             onComplete(insAct) { done =>
-              complete(s"new message added with id: ${insAct}")
+              complete(s"new person added with id: ${insAct}")
             }
           }
         }

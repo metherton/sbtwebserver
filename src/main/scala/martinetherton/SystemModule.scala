@@ -6,7 +6,7 @@ package martinetherton
 object SystemModule {
 
 
-  val messageRepository = new MessageRepository()
+  val messageRepository = new PersonRepository()
   def messageRepo = messageRepository
 
 }
