@@ -16,7 +16,7 @@ val spring = "org.springframework" % "spring" % "2.5.6"
 val logger = "ch.qos.logback" % "logback-classic" % "1.2.3"
 
 ThisBuild / scalaVersion     := "2.12.8"
-ThisBuild / version          := "0.1.0-SNAPSHOT"
+ThisBuild / version          := "0.1.1-SNAPSHOT"
 ThisBuild / organization     := "com.martinetherton"
 ThisBuild / organizationName := "martinetherton"
 
@@ -26,7 +26,9 @@ lazy val root = (project in file("."))
     libraryDependencies ++= Seq(scalaTest % Test, akkaHttp, akkaStream, jsonSerializer, akkaActor, cors, persistence, slick1, slick2, slick3, h2, spring, logger)
   )
 
-enablePlugins(JavaServerAppPackaging)
+// enablePlugins(JavaServerAppPackaging)
+enablePlugins(JavaAppPackaging)
+enablePlugins(DockerPlugin)
 
 mainClass in Compile := Some("martinetherton.WebServer")
 

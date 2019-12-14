@@ -9,6 +9,7 @@ import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.http.scaladsl.server.Directives._
 import akka.stream.ActorMaterializer
 import spray.json.DefaultJsonProtocol._
+import ch.megard.akka.http.cors.scaladsl.CorsDirectives._
 
 import scala.io.StdIn
 
@@ -50,7 +51,7 @@ object WebServer extends App {
 //      )
 //    }
 
-  val route1 =
+  val route1 = cors() {
     path("persons") {
       concat(
         get {
@@ -65,9 +66,9 @@ object WebServer extends App {
         },
         post {
           entity(as[Person]) { person =>
-   //         def newMessage = Seq(
-   //           Message("Martin", "This is my new message")
-   //         )
+            //         def newMessage = Seq(
+            //           Message("Martin", "This is my new message")
+            //         )
 
             val insAct = repo.insert(person)
             onComplete(insAct) { done =>
@@ -78,7 +79,9 @@ object WebServer extends App {
       )
     }
 
-  val bindingFuture = Http().bindAndHandle(route1, "localhost", 8080)
+  }
+
+  val bindingFuture = Http().bindAndHandle(route1, "0.0.0.0", 8080)
 
   println(s"Server online at http://localhost:8080/\nPress RETURN to stop...")
   StdIn.readLine() // let it run until user presses return
