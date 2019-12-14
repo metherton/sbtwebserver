@@ -1,3 +1,5 @@
 package martinetherton
 
-case class Person(firstName: String, surname: String, id: Option[Long] = None)
+import java.sql.Timestamp
+
+case class Person(firstName: String, surname: String, id: Option[Long] = None, dateOfBirth: Timestamp)

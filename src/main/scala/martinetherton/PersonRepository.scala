@@ -1,6 +1,9 @@
 package martinetherton
 
+import java.sql.Timestamp
+
 import akka.actor.ActorSystem
+import org.joda.time.DateTime
 import akka.stream.ActorMaterializer
 import slick.jdbc.H2Profile.api._
 import martinetherton.Person
@@ -11,7 +14,8 @@ class PersonRepository {
     def id = column[Long]("id", O.PrimaryKey, O.AutoInc)
     def firstName = column[String]("firstName")
     def surname = column[String]("surname")
-    def * = (firstName, surname, id.?).mapTo[Person]
+    def dateOfBirth = column[Timestamp]("dateOfBirth")
+    def * = (firstName, surname, id.?, dateOfBirth).mapTo[Person]
   }
 
   val persons = TableQuery[PersonTable]
@@ -29,10 +33,10 @@ class PersonRepository {
   val result = Await.result(future, 2.seconds)
 
   def freshTestData = Seq(
-    Person("Martin", "Etherton", None),
-    Person("Sydney", "Etherton", None),
-    Person("Sydney", "Etherton", None),
-    Person("Samuel", "Etherton", None)
+    Person("Martin", "Etherton", None, new Timestamp(DateTime.now.getMillis)),
+    Person("Sydney", "Etherton", None, new Timestamp(DateTime.now.getMillis)),
+    Person("Sydney", "Etherton", None, new Timestamp(DateTime.now.getMillis)),
+    Person("Samuel", "Etherton", None, new Timestamp(DateTime.now.getMillis))
   )
 
   val insert: DBIO[Option[Int]] = persons ++= freshTestData
@@ -50,8 +54,6 @@ class PersonRepository {
   }
 
   def insert(person: Person) = {
-
-
     val ins = persons returning persons.map(_.id) += person
     val insAct = exec(ins)
     insAct

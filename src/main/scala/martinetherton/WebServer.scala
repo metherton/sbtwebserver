@@ -3,6 +3,8 @@ package martinetherton
 // "com.typesafe.akka" %% "akka-http-spray-json" % "10.1.7"
 // for JSON serialization/deserialization following dependency is required:
 // "com.typesafe.akka" %% "akka-http-spray-json" % "10.1.7"
+import java.sql.Timestamp
+
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
@@ -10,6 +12,7 @@ import akka.http.scaladsl.server.Directives._
 import akka.stream.ActorMaterializer
 import spray.json.DefaultJsonProtocol._
 import ch.megard.akka.http.cors.scaladsl.CorsDirectives._
+import spray.json.{DeserializationException, JsNumber, JsValue, JsonFormat}
 
 import scala.io.StdIn
 
@@ -17,7 +20,16 @@ object WebServer extends App {
 
   import slick.jdbc.H2Profile.api._
 
-  implicit val messageFormat = jsonFormat3(Person)
+  implicit object TimestampFormat extends JsonFormat[Timestamp] {
+    def write(obj: Timestamp) = JsNumber(obj.getTime)
+
+    def read(json: JsValue) = json match {
+      case JsNumber(time) => new Timestamp(time.toLong)
+
+      case _ => throw new DeserializationException("Date expected")
+    }
+  }
+  implicit val messageFormat = jsonFormat4(Person)
 
   implicit val system = ActorSystem("my-system")
   implicit val materializer = ActorMaterializer()
