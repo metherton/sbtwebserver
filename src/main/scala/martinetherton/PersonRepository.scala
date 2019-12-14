@@ -15,7 +15,10 @@ class PersonRepository {
     def firstName = column[String]("firstName")
     def surname = column[String]("surname")
     def dateOfBirth = column[Timestamp]("dateOfBirth")
-    def * = (firstName, surname, id.?, dateOfBirth).mapTo[Person]
+    def address = column[String]("address")
+    def city = column[String]("city")
+    def country = column[String]("country")
+    def * = (firstName, surname, dateOfBirth, address, city, country, id.?).mapTo[Person]
   }
 
   val persons = TableQuery[PersonTable]
@@ -33,10 +36,10 @@ class PersonRepository {
   val result = Await.result(future, 2.seconds)
 
   def freshTestData = Seq(
-    Person("Martin", "Etherton", None, new Timestamp(DateTime.now.getMillis)),
-    Person("Sydney", "Etherton", None, new Timestamp(DateTime.now.getMillis)),
-    Person("Sydney", "Etherton", None, new Timestamp(DateTime.now.getMillis)),
-    Person("Samuel", "Etherton", None, new Timestamp(DateTime.now.getMillis))
+    Person("Martin", "Etherton", new Timestamp(DateTime.now.getMillis), "Greenwood Drive", "Sheffield", "England", None),
+    Person("Sydney", "Etherton", new Timestamp(DateTime.now.getMillis), "Addy Street", "Sheffield", "England", None),
+    Person("Sydney", "Etherton", new Timestamp(DateTime.now.getMillis), "Rusholme Road", "Manchester", "England", None),
+    Person("Samuel", "Etherton", new Timestamp(DateTime.now.getMillis), "City Road", "London", "England", None)
   )
 
   val insert: DBIO[Option[Int]] = persons ++= freshTestData
