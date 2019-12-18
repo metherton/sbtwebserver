@@ -29,7 +29,7 @@ object WebServer extends App {
       case _ => throw new DeserializationException("Date expected")
     }
   }
-  implicit val messageFormat = jsonFormat7(Person)
+  implicit val messageFormat = jsonFormat2(Person)
 
   implicit val system = ActorSystem("my-system")
   implicit val materializer = ActorMaterializer()

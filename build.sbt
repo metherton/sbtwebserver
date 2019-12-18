@@ -15,6 +15,7 @@ val h2 = "com.h2database" % "h2" % "1.4.199" // See Supported databases, below.
 val spring = "org.springframework" % "spring" % "2.5.6"
 val logger = "ch.qos.logback" % "logback-classic" % "1.2.3"
 val joda = "joda-time" % "joda-time" % "2.10.5"
+val mysql = "mysql" % "mysql-connector-java" % "8.0.11"
 
 ThisBuild / scalaVersion     := "2.12.8"
 ThisBuild / version          := "0.1.1-SNAPSHOT"
@@ -24,7 +25,7 @@ ThisBuild / organizationName := "martinetherton"
 lazy val root = (project in file("."))
   .settings(
     name := "server",
-    libraryDependencies ++= Seq(scalaTest % Test, akkaHttp, akkaStream, jsonSerializer, akkaActor, cors, persistence, slick1, slick2, slick3, h2, spring, logger, joda)
+    libraryDependencies ++= Seq(scalaTest % Test, akkaHttp, akkaStream, jsonSerializer, akkaActor, cors, persistence, slick1, slick2, slick3, h2, spring, logger, joda, mysql)
   )
 
 // enablePlugins(JavaServerAppPackaging)
