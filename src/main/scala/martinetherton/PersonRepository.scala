@@ -23,14 +23,14 @@ class PersonRepository {
     import slick.jdbc.MySQLProfile.api._
 
     class PersonTable(tag: Tag) extends Table[Person](tag, "person") {
- //   def id = column[Long]("id", O.PrimaryKey, O.AutoInc)
+    def id = column[Long]("id", O.PrimaryKey, O.AutoInc)
     def firstName = column[String]("firstName")
     def surname = column[String]("surname")
 //    def dateOfBirth = column[Timestamp]("dateOfBirth")
 //    def address = column[String]("address")
 //    def city = column[String]("city")
 //    def country = column[String]("country")
-    def * = (firstName, surname).mapTo[Person]
+    def * = (firstName, surname, id.?).mapTo[Person]
   }
 
   val persons = TableQuery[PersonTable]
@@ -69,7 +69,7 @@ class PersonRepository {
   }
 
   def insert(person: Person) = {
-    val ins = persons returning persons += person
+    val ins = persons returning persons.map(_.id) += person
     val insAct = exec(ins)
     insAct
   }
