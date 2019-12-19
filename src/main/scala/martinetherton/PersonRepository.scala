@@ -30,7 +30,7 @@ class PersonRepository {
 //    def address = column[String]("address")
 //    def city = column[String]("city")
 //    def country = column[String]("country")
-    def * = (firstName, surname) <> (Person.tupled, Person.unapply)
+    def * = (firstName, surname).mapTo[Person]
   }
 
   val persons = TableQuery[PersonTable]
