@@ -16,6 +16,8 @@ package martinetherton
 //import slick.lifted.{TableQuery, Tag}
 //import slick.model.Table
 
+import java.sql.Timestamp
+
 import scala.concurrent.Future
 
 class PersonRepository {
@@ -26,11 +28,11 @@ class PersonRepository {
     def id = column[Long]("id", O.PrimaryKey, O.AutoInc)
     def firstName = column[String]("firstName")
     def surname = column[String]("surname")
-//    def dateOfBirth = column[Timestamp]("dateOfBirth")
-//    def address = column[String]("address")
-//    def city = column[String]("city")
-//    def country = column[String]("country")
-    def * = (firstName, surname, id.?).mapTo[Person]
+    def dateOfBirth = column[Timestamp]("dateOfBirth")
+    def address = column[String]("address")
+    def city = column[String]("city")
+    def country = column[String]("country")
+    def * = (firstName, surname, dateOfBirth, address, city, country, id.?).mapTo[Person]
   }
 
   val persons = TableQuery[PersonTable]
