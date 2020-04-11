@@ -79,7 +79,7 @@ object WebServer extends App {
             case Success(persons) => complete(persons)
             case Failure(exception) => failWith(exception)
           }
-          complete(result)
+        //  complete(result)
 
         },
         post {
