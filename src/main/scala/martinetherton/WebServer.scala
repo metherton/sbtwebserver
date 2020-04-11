@@ -3,11 +3,11 @@ package martinetherton
 // "com.typesafe.akka" %% "akka-http-spray-json" % "10.1.7"
 // for JSON serialization/deserialization following dependency is required:
 // "com.typesafe.akka" %% "akka-http-spray-json" % "10.1.7"
-import java.nio.file.Paths
+import java.nio.file.{Paths, StandardOpenOption}
 
 import akka.actor.ActorSystem
 import akka.stream.IOResult
-import akka.stream.scaladsl.{FileIO, Source}
+import akka.stream.scaladsl.{FileIO, Sink, Source}
 import akka.util.ByteString
 import akka.{Done, NotUsed}
 
@@ -31,23 +31,31 @@ object WebServer extends App {
 //  implicit val system = ActorSystem("my-system")
 //  implicit val materializer = ActorMaterializer()
 //  // needed for the future flatMap/onComplete in the end
-//  implicit val executionContext = system.dispatcher
+
 
 
   implicit val system = ActorSystem("QuickStart")
-  val source: Source[Int, NotUsed] = Source(1 to 100)
-  source.runForeach(i => println(i))
 
-  val factorials = source.scan(BigInt(1))((acc, next) => acc * next)
-
-  val result: Future[IOResult] =
-    factorials.map(num => ByteString(s"$num\n")).runWith(FileIO.toPath(Paths.get("factorials.txt")))
+ // val source: Source[Int, NotUsed] = Source(1 to 100)
 
 
-  val done: Future[Done] = source.runForeach(i => println(i))
+  implicit val executionContext = system.dispatcher
 
-  implicit val ec = system.dispatcher
-  done.onComplete(_ => system.terminate())
+  val file = Paths.get("test.csv")
+
+  val outfile = Paths.get("greeting.txt")
+  private val mySource: Source[ByteString, Future[IOResult]] = FileIO.fromPath(file)
+
+  println(mySource.toString())
+  private val eventualResult: Future[IOResult] = mySource.runWith(FileIO.toPath(outfile, Set(StandardOpenOption.APPEND)))
+  eventualResult.onComplete(_ => system.terminate())
+
+//  val outfile = Paths.get("greeting.txt")
+//  val text = Source.single("Hello Akka Stream!")
+//  val result: Future[IOResult] = text.map(t => ByteString(t)).runWith(FileIO.toPath(outfile))
+//  val done: Future[Done] = source.runForeach(i => println(i))
+
+//  done.onComplete(_ => system.terminate())
 
 //  val repo = new PersonRepository
 
