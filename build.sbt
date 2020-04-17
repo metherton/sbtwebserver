@@ -33,6 +33,7 @@ enablePlugins(JavaAppPackaging)
 enablePlugins(DockerPlugin)
 
 mainClass in Compile := Some("martinetherton.WebServer")
+discoveredMainClasses in Compile := Seq()
 
 mappings in Universal ++= {
   // optional example illustrating how to copy additional directory
@@ -48,6 +49,12 @@ scriptClasspath := Seq("../config/") ++ scriptClasspath.value
 
 licenses := Seq(("CC0", url("http://creativecommons.org/publicdomain/zero/1.0")))
 
+
+assemblyMergeStrategy in assembly := {
+  case PathList("META-INF", xs @ _*) => MergeStrategy.discard
+  case PathList("reference.conf") => MergeStrategy.concat
+  case x => MergeStrategy.first
+}
 
 // Uncomment the following for publishing to Sonatype.
 // See https://www.scala-sbt.org/1.x/docs/Using-Sonatype.html for more detail.
