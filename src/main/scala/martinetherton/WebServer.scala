@@ -138,7 +138,7 @@ object WebServer extends App {
 
 //  val persons = Future{List(Person("martin", "etherton", new Timestamp(12121), "high street", "sheffield", "england"))}
 
-  val route1 = //cors() {
+  val route1 = cors() {
     path("persons") {
       concat(
         get {
@@ -166,7 +166,7 @@ object WebServer extends App {
       )
     }
 
-//  }
+  }
 
   val bindingFuture = Http().bindAndHandle(route1, "0.0.0.0", 8080)
 
