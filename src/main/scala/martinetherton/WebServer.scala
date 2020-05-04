@@ -69,7 +69,9 @@ object WebServer extends App {
   //      )
   //    }
 
-  val file = Paths.get("/Users/martin/myprojects/sbt/mywebserver/server/src/main/scala/martinetherton/etherton-london-1.ged")
+//  val file = Paths.get("/Users/martin/myprojects/sbt/mywebserver/server/src/main/scala/martinetherton/etherton-london-1.ged")
+  val file = Paths.get(ClassLoader.getSystemResource("etherton-london-1.ged").toURI)
+
   val source: Source[ByteString, Future[IOResult]] = FileIO.fromPath(file)
 
 //  val linesStream = source.via(Framing.delimiter(ByteString("0 @"), maximumFrameLength = 64000, allowTruncation = true)).via(Framing.delimiter(
