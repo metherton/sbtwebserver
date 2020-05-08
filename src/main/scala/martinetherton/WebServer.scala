@@ -34,8 +34,8 @@ object WebServer extends App {
     }
   }
 // implicit val messageFormat = jsonFormat7(Person)
- // implicit val messageFormat = jsonFormat4(Person)
-  implicit val messageFormat = jsonFormat3(Person)
+  implicit val messageFormat = jsonFormat4(Person)
+ // implicit val messageFormat = jsonFormat3(Person)
 
   implicit val system = ActorSystem("my-system")
   implicit val materializer = ActorMaterializer()
@@ -115,10 +115,12 @@ object WebServer extends App {
       }
     })
     val persons = arrayStrings.map(a => a.map( arr => {
-      val name = arr.find(s => s.startsWith("1 NAME")).getOrElse("1 NAME ").toString.substring(7)
+      val name = arr.find(s => s.startsWith("1 NAME")).getOrElse("1 NAME ").toString.substring(7).split("/")
+      val firstName = name(0)
+      val surname = if (name.length > 1) name(1).replace("/", "") else ""
       val dateOfBirth = arr.find(s => s.startsWith("2 DATE")).getOrElse("2 DATE ").toString.substring(7)
       val placeOfBirth = arr.find(s => s.startsWith("2 PLAC")).getOrElse("2 PLAC ").toString.substring(7)
-      Person(name, dateOfBirth, placeOfBirth)
+      Person(firstName, surname, dateOfBirth, placeOfBirth)
     }))
 
     val sinkPersons = persons.runWith(Sink.seq)
@@ -142,14 +144,14 @@ object WebServer extends App {
     path("persons") {
       concat(
         get {
+          parameters('key.as[String], 'value.as[String]) { (key, value) =>
+            //     import martinetherton.PersonRepository
+            //     val messagesResults = result(messagesFuture, 2.seconds)
+            //          val sql = messages.result.statements.mkString
 
-     //     import martinetherton.PersonRepository
-          //     val messagesResults = result(messagesFuture, 2.seconds)
-          //          val sql = messages.result.statements.mkString
-
-         // val result = repo.getPersons
-          complete(sinkPersons)
-
+            // val result = repo.getPersons
+            complete(sinkPersons)
+          }
         },
 //        post {
 //          entity(as[Person]) { person =>
