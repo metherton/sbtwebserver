@@ -114,16 +114,17 @@ object WebServer extends App {
         }
       }
     })
-    val persons = arrayStrings.map(a => a.map( arr => {
-      val name = arr.find(s => s.startsWith("1 NAME")).getOrElse("1 NAME ").toString.substring(7).split("/")
-      val firstName = name(0)
-      val surname = if (name.length > 1) name(1).replace("/", "") else ""
-      val dateOfBirth = arr.find(s => s.startsWith("2 DATE")).getOrElse("2 DATE ").toString.substring(7)
-      val placeOfBirth = arr.find(s => s.startsWith("2 PLAC")).getOrElse("2 PLAC ").toString.substring(7)
-      Person(firstName, surname, dateOfBirth, placeOfBirth)
-    }))
+  val persons: Source[List[Person], Future[IOResult]] = arrayStrings.map(a => a.map( arr => {
+    val name = arr.find(s => s.startsWith("1 NAME")).getOrElse("1 NAME ").toString.substring(7).split("/")
+    val firstName = name(0)
+    val surname = if (name.length > 1) name(1).replace("/", "") else ""
+    val dateOfBirth = arr.find(s => s.startsWith("2 DATE")).getOrElse("2 DATE ").toString.substring(7)
+    val placeOfBirth = arr.find(s => s.startsWith("2 PLAC")).getOrElse("2 PLAC ").toString.substring(7)
+    Person(firstName, surname, dateOfBirth, placeOfBirth)
+  }))
 
-    val sinkPersons = persons.runWith(Sink.seq)
+
+
 
 //    .map(
 //      (arr) => Person(
@@ -144,12 +145,18 @@ object WebServer extends App {
     path("persons") {
       concat(
         get {
-          parameters('key.as[String], 'value.as[String]) { (key, value) =>
+          parameters('firstName ? "*", 'surname ? "*") { (firstName, surname) =>
             //     import martinetherton.PersonRepository
             //     val messagesResults = result(messagesFuture, 2.seconds)
             //          val sql = messages.result.statements.mkString
 
             // val result = repo.getPersons
+            val filteredPersons = persons.map(listPersons => listPersons
+              .filter(person => (person.firstName.toLowerCase.contains(firstName.toLowerCase) || firstName.equals("*")) &&
+                (person.surname.toLowerCase.contains(surname.toLowerCase) || surname.equals("*"))))
+
+            val sinkPersons = filteredPersons.runWith(Sink.seq)
+
             complete(sinkPersons)
           }
         },
