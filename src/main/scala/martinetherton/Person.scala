@@ -6,4 +6,4 @@ import java.sql.Timestamp
 
 
 //case class Person(name: String, dateOfBirth: String, place: String, id: String)
-case class Person(firstName: String, surname: String, dateOfBirth: String, place: String)
+case class Person(firstName: String, surname: String, dateOfBirth: String, place: String, dateOfDeath: String, placeOfDeath: String, sex: String, childRelation: List[String], parentRelation: String)
