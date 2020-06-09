@@ -28,7 +28,7 @@ object WebServer extends App {
       case _ => throw new DeserializationException("Date expected")
     }
   }
-  implicit val messageFormat = jsonFormat9(Person)
+  implicit val messageFormat = jsonFormat10(Person)
   implicit val system = ActorSystem("my-system")
   implicit val materializer = ActorMaterializer()
   // needed for the future flatMap/onComplete in the end
@@ -80,7 +80,7 @@ object WebServer extends App {
                     }
                   }
                 }
-                val indexDeath = arr.indexOf("1 DEAT ");
+                val indexDeath = arr.indexOf("1 DEAT ")
                 var dateOfDeath = "unknown"
                 var placeOfDeath = "unknown"
                 if (indexDeath >= 0) {
@@ -97,13 +97,13 @@ object WebServer extends App {
 
                 }
                 val sex = arr.find(s => s.startsWith("1 SEX")).getOrElse("1 SEX ").toString.substring(6)
-                val childRelations = arr.filter(a => a.startsWith("1 FAMS")).map(x => x.substring(7))
-                val parentRelation = arr.find(s => s.startsWith("1 FAMC")).getOrElse("1 FAMC ").toString.substring(7)
+                val childRelations = arr.filter(a => a.startsWith("1 FAMS")).map(x => x.substring(7).replace("@F", "").replace("@", ""))
+                val parentRelation = arr.find(s => s.startsWith("1 FAMC")).getOrElse("1 FAMC ").toString.substring(7).replace("@F", "").replace("@", "")
+                val id = arr.find(s => s.startsWith("0 @P")).getOrElse("0 @P").toString.replace("0 @P", "").replace("@ INDI ", "")
 
-
-                Person(firstName, surname, dateOfBirth, placeOfBirth, dateOfDeath, placeOfDeath, sex, childRelations, parentRelation)
+                Person(id, firstName, surname, dateOfBirth, placeOfBirth, dateOfDeath, placeOfDeath, sex, childRelations, parentRelation)
               } else {
-                Person("UNKNOWN", "UNKNOWN", "UNKNOWN", "UNKNOWN", "UNKNOWN", "UNKNOWN", "UNKNOWN", List("UNKNOWN"), "UNKNOWN")
+                Person("UNKNOWN", "UNKNOWN", "UNKNOWN", "UNKNOWN", "UNKNOWN", "UNKNOWN", "UNKNOWN", "UNKNOWN", List("UNKNOWN"), "UNKNOWN")
 
               }
 
@@ -184,13 +184,14 @@ object WebServer extends App {
 
                 }
                 val sex = arr.find(s => s.startsWith("1 SEX")).getOrElse("1 SEX ").toString.substring(6)
-                val childRelations = arr.filter(a => a.startsWith("1 FAMS")).map(x => x.substring(7))
-                val parentRelation = arr.find(s => s.startsWith("1 FAMC")).getOrElse("1 FAMC ").toString.substring(7)
+                val childRelations = arr.filter(a => a.startsWith("1 FAMS")).map(x => x.substring(7).replace("@F", "").replace("@", ""))
+                val parentRelation = arr.find(s => s.startsWith("1 FAMC")).getOrElse("1 FAMC ").toString.substring(7).replace("@F", "").replace("@", "")
+                val id = arr.find(s => s.startsWith("0 @P")).getOrElse("0 @P").toString.replace("0 @P", "").replace("@ INDI ", "")
 
 
-                Person(firstName, surname, dateOfBirth, placeOfBirth, dateOfDeath, placeOfDeath, sex, childRelations, parentRelation)
+                Person(id, firstName, surname, dateOfBirth, placeOfBirth, dateOfDeath, placeOfDeath, sex, childRelations, parentRelation)
               } else {
-                Person("UNKNOWN", "UNKNOWN", "UNKNOWN", "UNKNOWN", "UNKNOWN", "UNKNOWN", "UNKNOWN", List("UNKNOWN"), "UNKNOWN")
+                Person("UNKNOWN", "UNKNOWN", "UNKNOWN", "UNKNOWN", "UNKNOWN", "UNKNOWN", "UNKNOWN", "UNKNOWN", List("UNKNOWN"), "UNKNOWN")
 
               }
 
@@ -271,13 +272,14 @@ object WebServer extends App {
 
                 }
                 val sex = arr.find(s => s.startsWith("1 SEX")).getOrElse("1 SEX ").toString.substring(6)
-                val childRelations = arr.filter(a => a.startsWith("1 FAMS")).map(x => x.substring(7))
-                val parentRelation = arr.find(s => s.startsWith("1 FAMC")).getOrElse("1 FAMC ").toString.substring(7)
+                val childRelations = arr.filter(a => a.startsWith("1 FAMS")).map(x => x.substring(7).replace("@F", "").replace("@", ""))
+                val parentRelation = arr.find(s => s.startsWith("1 FAMC")).getOrElse("1 FAMC ").toString.substring(7).replace("@F", "").replace("@", "")
+                val id = arr.find(s => s.startsWith("0 @P")).getOrElse("0 @P").toString.replace("0 @P", "").replace("@ INDI ", "")
 
 
-                Person(firstName, surname, dateOfBirth, placeOfBirth, dateOfDeath, placeOfDeath, sex, childRelations, parentRelation)
+                Person(id, firstName, surname, dateOfBirth, placeOfBirth, dateOfDeath, placeOfDeath, sex, childRelations, parentRelation)
               } else {
-                Person("UNKNOWN", "UNKNOWN", "UNKNOWN", "UNKNOWN", "UNKNOWN", "UNKNOWN", "UNKNOWN", List("UNKNOWN"), "UNKNOWN")
+                Person("UNKNOWN", "UNKNOWN", "UNKNOWN", "UNKNOWN", "UNKNOWN", "UNKNOWN", "UNKNOWN", "UNKNOWN", List("UNKNOWN"), "UNKNOWN")
 
               }
 
@@ -358,13 +360,14 @@ object WebServer extends App {
 
                 }
                 val sex = arr.find(s => s.startsWith("1 SEX")).getOrElse("1 SEX ").toString.substring(6)
-                val childRelations = arr.filter(a => a.startsWith("1 FAMS")).map(x => x.substring(7))
-                val parentRelation = arr.find(s => s.startsWith("1 FAMC")).getOrElse("1 FAMC ").toString.substring(7)
+                val childRelations = arr.filter(a => a.startsWith("1 FAMS")).map(x => x.substring(7).replace("@F", "").replace("@", ""))
+                val parentRelation = arr.find(s => s.startsWith("1 FAMC")).getOrElse("1 FAMC ").toString.substring(7).replace("@F", "").replace("@", "")
+                val id = arr.find(s => s.startsWith("0 @P")).getOrElse("0 @P").toString.replace("0 @P", "").replace("@ INDI ", "")
 
 
-                Person(firstName, surname, dateOfBirth, placeOfBirth, dateOfDeath, placeOfDeath, sex, childRelations, parentRelation)
+                Person(id, firstName, surname, dateOfBirth, placeOfBirth, dateOfDeath, placeOfDeath, sex, childRelations, parentRelation)
               } else {
-                Person("UNKNOWN", "UNKNOWN", "UNKNOWN", "UNKNOWN", "UNKNOWN", "UNKNOWN", "UNKNOWN", List("UNKNOWN"), "UNKNOWN")
+                Person("UNKNOWN", "UNKNOWN", "UNKNOWN", "UNKNOWN", "UNKNOWN", "UNKNOWN", "UNKNOWN", "UNKNOWN", List("UNKNOWN"), "UNKNOWN")
 
               }
 
@@ -445,13 +448,14 @@ object WebServer extends App {
 
                 }
                 val sex = arr.find(s => s.startsWith("1 SEX")).getOrElse("1 SEX ").toString.substring(6)
-                val childRelations = arr.filter(a => a.startsWith("1 FAMS")).map(x => x.substring(7))
-                val parentRelation = arr.find(s => s.startsWith("1 FAMC")).getOrElse("1 FAMC ").toString.substring(7)
+                val childRelations = arr.filter(a => a.startsWith("1 FAMS")).map(x => x.substring(7).replace("@F", "").replace("@", ""))
+                val parentRelation = arr.find(s => s.startsWith("1 FAMC")).getOrElse("1 FAMC ").toString.substring(7).replace("@F", "").replace("@", "")
+                val id = arr.find(s => s.startsWith("0 @P")).getOrElse("0 @P").toString.replace("0 @P", "").replace("@ INDI ", "")
 
 
-                Person(firstName, surname, dateOfBirth, placeOfBirth, dateOfDeath, placeOfDeath, sex, childRelations, parentRelation)
+                Person(id, firstName, surname, dateOfBirth, placeOfBirth, dateOfDeath, placeOfDeath, sex, childRelations, parentRelation)
               } else {
-                Person("UNKNOWN", "UNKNOWN", "UNKNOWN", "UNKNOWN", "UNKNOWN", "UNKNOWN", "UNKNOWN", List("UNKNOWN"), "UNKNOWN")
+                Person("UNKNOWN", "UNKNOWN", "UNKNOWN", "UNKNOWN", "UNKNOWN", "UNKNOWN", "UNKNOWN", "UNKNOWN", List("UNKNOWN"), "UNKNOWN")
 
               }
 

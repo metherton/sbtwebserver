@@ -2,31 +2,40 @@ import Dependencies._
 import com.typesafe.sbt.SbtNativePackager.autoImport.NativePackagerHelper._
 
 
-val akkaHttp = "com.typesafe.akka" %% "akka-http"   % "10.1.10"
-val akkaStream = "com.typesafe.akka" %% "akka-stream" % "2.5.23" // or whatever the latest version is
-val jsonSerializer = "com.typesafe.akka" %% "akka-http-spray-json" % "10.1.10"
-val akkaActor = "com.typesafe.akka" %% "akka-actor"   % "2.4.20"
-val persistence = "com.typesafe.akka" %% "akka-persistence-query" % "2.6.0"
+val akkaHttp = "com.typesafe.akka" %% "akka-http"   % "10.1.12"
+val akkaStream = "com.typesafe.akka" %% "akka-stream" % "2.6.5" // or whatever the latest version is
+val jsonSerializer = "com.typesafe.akka" %% "akka-http-spray-json" % "10.1.12"
+val akkaActor = "com.typesafe.akka" %% "akka-actor"   % "2.6.5"
+val persistence = "com.typesafe.akka" %% "akka-persistence-query" % "2.6.5"
 val cors = "ch.megard" %% "akka-http-cors" % "0.4.2"
-val slick1 = "com.typesafe.slick" %% "slick" % "3.3.1"
-val slick2 = "org.slf4j" % "slf4j-nop" % "1.7.26"
-val slick3 = "com.typesafe.slick" %% "slick-hikaricp" % "3.3.1"
-val h2 = "com.h2database" % "h2" % "1.4.199" // See Supported databases, below.
-val spring = "org.springframework" % "spring" % "2.5.6"
-val logger = "ch.qos.logback" % "logback-classic" % "1.2.3"
-val joda = "joda-time" % "joda-time" % "2.10.5"
-val mysql = "mysql" % "mysql-connector-java" % "8.0.11"
+//val slick1 = "com.typesafe.slick" %% "slick" % "3.3.1"
+//val slick2 = "org.slf4j" % "slf4j-nop" % "1.7.26"
+//val slick3 = "com.typesafe.slick" %% "slick-hikaricp" % "3.3.1"
+//val h2 = "com.h2database" % "h2" % "1.4.199" // See Supported databases, below.
+//val spring = "org.springframework" % "spring" % "2.6.5"
+//val logger = "ch.qos.logback" % "logback-classic" % "1.2.3"
+//val joda = "joda-time" % "joda-time" % "2.10.5"
+//val mysql = "mysql" % "mysql-connector-java" % "8.0.11"
+val httpTest = "com.typesafe.akka" %% "akka-http-testkit" % "10.1.12" % Test
+val streamTest = "com.typesafe.akka" %% "akka-stream-testkit" % "2.6.5" % Test
 
 ThisBuild / scalaVersion     := "2.12.8"
 ThisBuild / version          := "0.1.1-SNAPSHOT"
 ThisBuild / organization     := "com.martinetherton"
 ThisBuild / organizationName := "martinetherton"
 
+//lazy val root = (project in file("."))
+//  .settings(
+//    name := "server",
+//    libraryDependencies ++= Seq(scalaTest % Test, akkaHttp, akkaStream, jsonSerializer, akkaActor, cors, persistence, slick1, slick2, slick3, h2, spring, logger, joda, mysql, httpTest, streamTest)
+//  )
+
 lazy val root = (project in file("."))
   .settings(
     name := "server",
-    libraryDependencies ++= Seq(scalaTest % Test, akkaHttp, akkaStream, jsonSerializer, akkaActor, cors, persistence, slick1, slick2, slick3, h2, spring, logger, joda, mysql)
+    libraryDependencies ++= Seq(scalaTest % Test, akkaHttp, akkaStream, jsonSerializer, akkaActor, persistence, httpTest, streamTest, cors)
   )
+
 
 // enablePlugins(JavaServerAppPackaging)
 enablePlugins(JavaAppPackaging)
