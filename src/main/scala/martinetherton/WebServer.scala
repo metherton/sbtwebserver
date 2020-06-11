@@ -45,9 +45,10 @@ object WebServer extends App {
             val file = Paths.get(ClassLoader.getSystemResource("etherton-london-1.ged").toURI)
 
             val source: Source[ByteString, Future[IOResult]] = FileIO.fromPath(file)
-            val arrayStrings = source.via(Framing.delimiter(
+            val arrayStrings1 = source.via(Framing.delimiter(
               ByteString("\r\n"), maximumFrameLength = 500, allowTruncation = true))
-              .map(_.utf8String).filter(row => row.startsWith("2 PLAC") || row.startsWith("2 DATE") || row.startsWith("1 BIRT")
+
+            val arrayStrings = arrayStrings1.map(_.utf8String).filter(row => row.startsWith("2 PLAC") || row.startsWith("2 DATE") || row.startsWith("1 BIRT")
               || row.startsWith("1 SEX") || row.startsWith("0 @P") || row.startsWith("1 NAME")  || row.startsWith("1 DEAT")
               || row.startsWith("1 FAMC") ||  row.startsWith("1 FAMS") )
               .fold(List(): List[List[String]])((acc: List[List[String]], row: String) => {

@@ -19,7 +19,7 @@ val cors = "ch.megard" %% "akka-http-cors" % "0.4.2"
 val httpTest = "com.typesafe.akka" %% "akka-http-testkit" % "10.1.12" % Test
 val streamTest = "com.typesafe.akka" %% "akka-stream-testkit" % "2.6.5" % Test
 
-ThisBuild / scalaVersion     := "2.12.8"
+ThisBuild / scalaVersion     := "2.13.1"
 ThisBuild / version          := "0.1.1-SNAPSHOT"
 ThisBuild / organization     := "com.martinetherton"
 ThisBuild / organizationName := "martinetherton"
