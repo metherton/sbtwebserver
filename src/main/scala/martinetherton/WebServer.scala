@@ -34,17 +34,18 @@ object WebServer extends App {
   // needed for the future flatMap/onComplete in the end
   implicit val executionContext = system.dispatcher
 
-  def convertFileIntoString(): Source[String, Future[IOResult]] = {
-    val file: Path = Paths.get(ClassLoader.getSystemResource("etherton-london-1.ged").toURI)
-
+  def stringArrayFrom(gedcomFile: String): Source[String, Future[IOResult]] = {
+    val file: Path = Paths.get(ClassLoader.getSystemResource(gedcomFile).toURI)
     val source: Source[ByteString, Future[IOResult]] = FileIO.fromPath(file)
-    val arrayStrings1: Source[ByteString, Future[IOResult]] = source.via(Framing.delimiter(
+    val byteStringArray: Source[ByteString, Future[IOResult]] = source.via(Framing.delimiter(
       ByteString("\r\n"), maximumFrameLength = 500, allowTruncation = true))
-
-    val bal = arrayStrings1.map(_.utf8String)
-    bal
+    val stringArray = byteStringArray.map(_.utf8String)
+    stringArray
   }
 
+  def getRequiredLines(stringSource: Source[String, Future[IOResult]]): Source[String, Future[IOResult]] = {
+    stringSource.filter(row => List("2 PLAC", "2 DATE", "1 BIRT", "1 SEX", "0 @P", "1 NAME", "1 DEAT", "1 FAMC", "1 FAMS").exists(prefix => row.startsWith(prefix)))
+  }
 
   val route1 = cors() {
     path("gedcom" / "london1") {
@@ -58,9 +59,9 @@ object WebServer extends App {
 //            val arrayStrings1: Source[ByteString, Future[IOResult]] = source.via(Framing.delimiter(
 //              ByteString("\r\n"), maximumFrameLength = 500, allowTruncation = true))
 
-            val arrayStrings: Source[List[List[String]], Future[IOResult]] = convertFileIntoString().filter(row => row.startsWith("2 PLAC") || row.startsWith("2 DATE") || row.startsWith("1 BIRT")
-              || row.startsWith("1 SEX") || row.startsWith("0 @P") || row.startsWith("1 NAME")  || row.startsWith("1 DEAT")
-              || row.startsWith("1 FAMC") ||  row.startsWith("1 FAMS") )
+            val stringArray: Source[String, Future[IOResult]] = stringArrayFrom("etherton-london-1.ged")
+            val filteredStringArray = getRequiredLines(stringArray)
+            val arrayStrings: Source[List[List[String]], Future[IOResult]] = filteredStringArray
               .fold(List(): List[List[String]])((acc: List[List[String]], row: String) => {
                 row.startsWith("0 @P") match {
                   case true => List(row) :: acc

@@ -63,11 +63,25 @@ class PersonConverterSpec extends UnitSpec {
       factorials.map(num => ByteString(s"$num\n")).runWith(FileIO.toPath(Paths.get("factorials.txt")))
   }
 
-  it should "read file into String" in {
-    val stringSource: Source[String, Future[IOResult]] = WebServer.convertFileIntoString()
+  it should "read file into Source[String...]" in {
+    val stringSource: Source[String, Future[IOResult]] = WebServer.stringArrayFrom("etherton-london-1.ged")
     val future = stringSource.runWith(Sink.head)
     val result = Await.result(future, 5.seconds)
     assert(result.startsWith("0 HEAD") == true)
+  }
+
+  it should "output read file into String" in {
+    val stringSource: Source[String, Future[IOResult]] = WebServer.stringArrayFrom("etherton-london-1.ged")
+ //   val future = stringSource.runForeach(i => println(i))
+  }
+
+  it should "filter only the lines we need" in {
+    val stringSource: Source[String, Future[IOResult]] = WebServer.stringArrayFrom("etherton-london-1.ged")
+
+    val filteredArray: Source[String, Future[IOResult]] = WebServer.getRequiredLines(stringSource)
+    val future: Future[Seq[String]] = filteredArray.runWith(Sink.seq)
+    val result = Await.result(future, 5.seconds)
+    assert(result.head.startsWith("0 @P7@ INDI") == true)
   }
 
 }
