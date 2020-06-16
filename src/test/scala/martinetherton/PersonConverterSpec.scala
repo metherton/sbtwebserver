@@ -84,4 +84,46 @@ class PersonConverterSpec extends UnitSpec {
     assert(result.head.startsWith("0 @P7@ INDI") == true)
   }
 
+  it should "group the filtered lines into person lines" in {
+    val stringSource: Source[String, Future[IOResult]] = WebServer.stringArrayFrom("etherton-london-1.ged")
+
+    val filteredArray: Source[String, Future[IOResult]] = WebServer.getRequiredLines(stringSource)
+    val personLines: Source[List[List[String]], Future[IOResult]] = WebServer.listOfPersonStringsFrom(filteredArray)
+    //val future = personLines.runForeach(l => println(l))
+    val future = personLines.runWith(Sink.head)
+ //   val result = Await.result(future, 5.seconds)
+//    result.foreach(l => l.foreach(x => println(x)))
+    //val future: Future[Seq[List[List[String]]]] = personLines.runWith(Sink.seq)
+
+  }
+
+  it should "get list of persons from arrays of person strings" in {
+    val stringSource: Source[String, Future[IOResult]] = WebServer.stringArrayFrom("etherton-london-1.ged")
+
+    val filteredArray: Source[String, Future[IOResult]] = WebServer.getRequiredLines(stringSource)
+    val personLines: Source[List[List[String]], Future[IOResult]] = WebServer.listOfPersonStringsFrom(filteredArray)
+    //val future = personLines.runForeach(l => println(l))
+    val persons = WebServer.personsFrom(personLines)
+    val future = persons.runWith(Sink.head)
+    val result = Await.result(future, 5.seconds)
+    assert(result.head.firstName === "Marie L ")
+
+  }
+
+  it should "filters persons with first name Percy" in {
+    val stringSource: Source[String, Future[IOResult]] = WebServer.stringArrayFrom("etherton-london-1.ged")
+
+    val filteredArray: Source[String, Future[IOResult]] = WebServer.getRequiredLines(stringSource)
+    val personLines: Source[List[List[String]], Future[IOResult]] = WebServer.listOfPersonStringsFrom(filteredArray)
+    //val future = personLines.runForeach(l => println(l))
+    val persons = WebServer.personsFrom(personLines)
+    val firstName = "Percy "
+    val personsCalledPercy = WebServer.filteredPersonList(persons, firstName, "*")
+    val future = personsCalledPercy.runWith(Sink.head)
+    val result = Await.result(future, 5.seconds)
+    assert(result.head.firstName === "Percy ")
+
+  }
+
+
 }
