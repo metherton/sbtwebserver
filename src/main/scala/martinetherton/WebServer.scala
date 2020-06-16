@@ -124,26 +124,9 @@ object WebServer extends App {
       concat(
         get {
           parameters('firstName ? "*", 'surname ? "*") { (firstName, surname) =>
-            val stringArray: Source[String, Future[IOResult]] = stringArrayFrom("etherton-london-1.ged")
-            val filteredStringArray = getRequiredLines(stringArray)
-            val personStringArrays: Source[List[List[String]], Future[IOResult]] = listOfPersonStringsFrom(filteredStringArray)
-            val allPersons: Source[List[Person], Future[IOResult]] = personsFrom(personStringArrays)
-
-            val filteredPersons: Source[List[Person], Future[IOResult]] = filteredPersonList(allPersons, firstName, surname)
-
-            val sinkPersons: Future[List[Person]] = filteredPersons.runWith(Sink.head)
-
+            val sourcePersons: Source[List[Person], Future[IOResult]] = filteredPersonList(personsFrom(listOfPersonStringsFrom(getRequiredLines(stringArrayFrom("etherton-london-1.ged")))), firstName, surname)
+            val sinkPersons: Future[List[Person]] = sourcePersons.runWith(Sink.head)
             complete(sinkPersons)
-
-/*
-Path ->
-Source[ByteString, Future[IOResult]] ->
-Source[List[List[String]], Future[IOResult]]  ->
-Source[List[Person], Future[IOResult]] ->
-Source[List[Person], Future[IOResult]] ->
-Future[Seq[List[Person]]]->
-Seq[List[Person]]
-*/
           }
         },
       )
@@ -156,81 +139,8 @@ Seq[List[Person]]
       concat(
         get {
           parameters('firstName ? "*", 'surname ? "*") { (firstName, surname) =>
-
-            val file = Paths.get(ClassLoader.getSystemResource("etherton-sussex-1.ged").toURI)
-
-            val source: Source[ByteString, Future[IOResult]] = FileIO.fromPath(file)
-            val arrayStrings = source.via(Framing.delimiter(
-              ByteString("\r\n"), maximumFrameLength = 500, allowTruncation = true))
-              .map(_.utf8String).filter(row => row.startsWith("2 PLAC") || row.startsWith("2 DATE") || row.startsWith("1 BIRT")
-              || row.startsWith("1 SEX") || row.startsWith("0 @P") || row.startsWith("1 NAME")  || row.startsWith("1 DEAT")
-              || row.startsWith("1 FAMC") ||  row.startsWith("1 FAMS") )
-              .fold(List(): List[List[String]])((acc: List[List[String]], row: String) => {
-                row.startsWith("0 @P") match {
-                  case true => List(row) :: acc
-                  case false => acc match {
-                    case h :: Nil => (row :: h) :: Nil
-                    case h :: t => (row :: h) :: t
-                  }
-                }
-              })
-            val persons: Source[List[Person], Future[IOResult]] = arrayStrings.map(a => a.map( arr1 => {
-              var arr = arr1.reverse
-              val name = arr.find(s => s.startsWith("1 NAME")).getOrElse("1 NAME ").toString.substring(7).split("/")
-              val firstName = name(0)
-              if (!firstName.equals("Ancestry.com")) {
-                val surname = if (name.length > 1) name(1).replace("/", "") else ""
-                val indexBirth = arr.indexOf("1 BIRT ");
-                var dateOfBirth = "unknown"
-                var placeOfBirth = "unknown"
-                if (indexBirth >= 0) {
-                  if (indexBirth + 1 <= arr.size - 1) {
-                    if (arr(indexBirth + 1).startsWith("2 DATE")) {
-                      dateOfBirth = arr(indexBirth + 1).toString.substring(7)
-                    }
-                  }
-                  if (indexBirth + 2 <= arr.size - 1) {
-                    if (arr(indexBirth + 2).startsWith("2 PLAC")) {
-                      placeOfBirth = arr(indexBirth + 2).toString.substring(7)
-                    }
-                  }
-                }
-                val indexDeath = arr.indexOf("1 DEAT ");
-                var dateOfDeath = "unknown"
-                var placeOfDeath = "unknown"
-                if (indexDeath >= 0) {
-                  if (indexDeath + 1 <= arr.size - 1) {
-                    if (arr(indexDeath + 1).startsWith("2 DATE")) {
-                      dateOfDeath = arr(indexDeath + 1).toString.substring(7)
-                    }
-                  }
-                  if (indexDeath + 2 <= arr.size - 1) {
-                    if (arr(indexDeath + 2).startsWith("2 PLAC")) {
-                      placeOfDeath = arr(indexDeath + 2).toString.substring(7)
-                    }
-                  }
-
-                }
-                val sex = arr.find(s => s.startsWith("1 SEX")).getOrElse("1 SEX ").toString.substring(6)
-                val childRelations = arr.filter(a => a.startsWith("1 FAMS")).map(x => x.substring(7).replace("@F", "").replace("@", ""))
-                val parentRelation = arr.find(s => s.startsWith("1 FAMC")).getOrElse("1 FAMC ").toString.substring(7).replace("@F", "").replace("@", "")
-                val id = arr.find(s => s.startsWith("0 @P")).getOrElse("0 @P").toString.replace("0 @P", "").replace("@ INDI ", "")
-
-
-                Person(id, firstName, surname, dateOfBirth, placeOfBirth, dateOfDeath, placeOfDeath, sex, childRelations, parentRelation)
-              } else {
-                Person("UNKNOWN", "UNKNOWN", "UNKNOWN", "UNKNOWN", "UNKNOWN", "UNKNOWN", "UNKNOWN", "UNKNOWN", List("UNKNOWN"), "UNKNOWN")
-
-              }
-
-            }))
-
-            val filteredPersons = persons.map(listPersons => listPersons
-              .filter(person => (person.firstName.toLowerCase.contains(firstName.toLowerCase) || firstName.equals("*")) &&
-                (person.surname.toLowerCase.contains(surname.toLowerCase) || surname.equals("*"))))
-
-            val sinkPersons = filteredPersons.runWith(Sink.seq)
-
+            val sourcePersons: Source[List[Person], Future[IOResult]] = filteredPersonList(personsFrom(listOfPersonStringsFrom(getRequiredLines(stringArrayFrom("etherton-sussex-1.ged")))), firstName, surname)
+            val sinkPersons: Future[List[Person]] = sourcePersons.runWith(Sink.head)
             complete(sinkPersons)
           }
         },
@@ -244,81 +154,8 @@ Seq[List[Person]]
       concat(
         get {
           parameters('firstName ? "*", 'surname ? "*") { (firstName, surname) =>
-
-            val file = Paths.get(ClassLoader.getSystemResource("etherton-london-2.ged").toURI)
-
-            val source: Source[ByteString, Future[IOResult]] = FileIO.fromPath(file)
-            val arrayStrings = source.via(Framing.delimiter(
-              ByteString("\r\n"), maximumFrameLength = 500, allowTruncation = true))
-              .map(_.utf8String).filter(row => row.startsWith("2 PLAC") || row.startsWith("2 DATE") || row.startsWith("1 BIRT")
-              || row.startsWith("1 SEX") || row.startsWith("0 @P") || row.startsWith("1 NAME")  || row.startsWith("1 DEAT")
-              || row.startsWith("1 FAMC") ||  row.startsWith("1 FAMS") )
-              .fold(List(): List[List[String]])((acc: List[List[String]], row: String) => {
-                row.startsWith("0 @P") match {
-                  case true => List(row) :: acc
-                  case false => acc match {
-                    case h :: Nil => (row :: h) :: Nil
-                    case h :: t => (row :: h) :: t
-                  }
-                }
-              })
-            val persons: Source[List[Person], Future[IOResult]] = arrayStrings.map(a => a.map( arr1 => {
-              var arr = arr1.reverse
-              val name = arr.find(s => s.startsWith("1 NAME")).getOrElse("1 NAME ").toString.substring(7).split("/")
-              val firstName = name(0)
-              if (!firstName.equals("Ancestry.com")) {
-                val surname = if (name.length > 1) name(1).replace("/", "") else ""
-                val indexBirth = arr.indexOf("1 BIRT ");
-                var dateOfBirth = "unknown"
-                var placeOfBirth = "unknown"
-                if (indexBirth >= 0) {
-                  if (indexBirth + 1 <= arr.size - 1) {
-                    if (arr(indexBirth + 1).startsWith("2 DATE")) {
-                      dateOfBirth = arr(indexBirth + 1).toString.substring(7)
-                    }
-                  }
-                  if (indexBirth + 2 <= arr.size - 1) {
-                    if (arr(indexBirth + 2).startsWith("2 PLAC")) {
-                      placeOfBirth = arr(indexBirth + 2).toString.substring(7)
-                    }
-                  }
-                }
-                val indexDeath = arr.indexOf("1 DEAT ");
-                var dateOfDeath = "unknown"
-                var placeOfDeath = "unknown"
-                if (indexDeath >= 0) {
-                  if (indexDeath + 1 <= arr.size - 1) {
-                    if (arr(indexDeath + 1).startsWith("2 DATE")) {
-                      dateOfDeath = arr(indexDeath + 1).toString.substring(7)
-                    }
-                  }
-                  if (indexDeath + 2 <= arr.size - 1) {
-                    if (arr(indexDeath + 2).startsWith("2 PLAC")) {
-                      placeOfDeath = arr(indexDeath + 2).toString.substring(7)
-                    }
-                  }
-
-                }
-                val sex = arr.find(s => s.startsWith("1 SEX")).getOrElse("1 SEX ").toString.substring(6)
-                val childRelations = arr.filter(a => a.startsWith("1 FAMS")).map(x => x.substring(7).replace("@F", "").replace("@", ""))
-                val parentRelation = arr.find(s => s.startsWith("1 FAMC")).getOrElse("1 FAMC ").toString.substring(7).replace("@F", "").replace("@", "")
-                val id = arr.find(s => s.startsWith("0 @P")).getOrElse("0 @P").toString.replace("0 @P", "").replace("@ INDI ", "")
-
-
-                Person(id, firstName, surname, dateOfBirth, placeOfBirth, dateOfDeath, placeOfDeath, sex, childRelations, parentRelation)
-              } else {
-                Person("UNKNOWN", "UNKNOWN", "UNKNOWN", "UNKNOWN", "UNKNOWN", "UNKNOWN", "UNKNOWN", "UNKNOWN", List("UNKNOWN"), "UNKNOWN")
-
-              }
-
-            }))
-
-            val filteredPersons = persons.map(listPersons => listPersons
-              .filter(person => (person.firstName.toLowerCase.contains(firstName.toLowerCase) || firstName.equals("*")) &&
-                (person.surname.toLowerCase.contains(surname.toLowerCase) || surname.equals("*"))))
-
-            val sinkPersons = filteredPersons.runWith(Sink.seq)
-
+            val sourcePersons: Source[List[Person], Future[IOResult]] = filteredPersonList(personsFrom(listOfPersonStringsFrom(getRequiredLines(stringArrayFrom("etherton-london-2.ged")))), firstName, surname)
+            val sinkPersons: Future[List[Person]] = sourcePersons.runWith(Sink.head)
             complete(sinkPersons)
           }
         },
@@ -332,81 +169,8 @@ Seq[List[Person]]
       concat(
         get {
           parameters('firstName ? "*", 'surname ? "*") { (firstName, surname) =>
-
-            val file = Paths.get(ClassLoader.getSystemResource("etherton-sussex-2.ged").toURI)
-
-            val source: Source[ByteString, Future[IOResult]] = FileIO.fromPath(file)
-            val arrayStrings = source.via(Framing.delimiter(
-              ByteString("\r\n"), maximumFrameLength = 500, allowTruncation = true))
-              .map(_.utf8String).filter(row => row.startsWith("2 PLAC") || row.startsWith("2 DATE") || row.startsWith("1 BIRT")
-              || row.startsWith("1 SEX") || row.startsWith("0 @P") || row.startsWith("1 NAME")  || row.startsWith("1 DEAT")
-              || row.startsWith("1 FAMC") ||  row.startsWith("1 FAMS") )
-              .fold(List(): List[List[String]])((acc: List[List[String]], row: String) => {
-                row.startsWith("0 @P") match {
-                  case true => List(row) :: acc
-                  case false => acc match {
-                    case h :: Nil => (row :: h) :: Nil
-                    case h :: t => (row :: h) :: t
-                  }
-                }
-              })
-            val persons: Source[List[Person], Future[IOResult]] = arrayStrings.map(a => a.map( arr1 => {
-              var arr = arr1.reverse
-              val name = arr.find(s => s.startsWith("1 NAME")).getOrElse("1 NAME ").toString.substring(7).split("/")
-              val firstName = name(0)
-              if (!firstName.equals("Ancestry.com")) {
-                val surname = if (name.length > 1) name(1).replace("/", "") else ""
-                val indexBirth = arr.indexOf("1 BIRT ");
-                var dateOfBirth = "unknown"
-                var placeOfBirth = "unknown"
-                if (indexBirth >= 0) {
-                  if (indexBirth + 1 <= arr.size - 1) {
-                    if (arr(indexBirth + 1).startsWith("2 DATE")) {
-                      dateOfBirth = arr(indexBirth + 1).toString.substring(7)
-                    }
-                  }
-                  if (indexBirth + 2 <= arr.size - 1) {
-                    if (arr(indexBirth + 2).startsWith("2 PLAC")) {
-                      placeOfBirth = arr(indexBirth + 2).toString.substring(7)
-                    }
-                  }
-                }
-                val indexDeath = arr.indexOf("1 DEAT ");
-                var dateOfDeath = "unknown"
-                var placeOfDeath = "unknown"
-                if (indexDeath >= 0) {
-                  if (indexDeath + 1 <= arr.size - 1) {
-                    if (arr(indexDeath + 1).startsWith("2 DATE")) {
-                      dateOfDeath = arr(indexDeath + 1).toString.substring(7)
-                    }
-                  }
-                  if (indexDeath + 2 <= arr.size - 1) {
-                    if (arr(indexDeath + 2).startsWith("2 PLAC")) {
-                      placeOfDeath = arr(indexDeath + 2).toString.substring(7)
-                    }
-                  }
-
-                }
-                val sex = arr.find(s => s.startsWith("1 SEX")).getOrElse("1 SEX ").toString.substring(6)
-                val childRelations = arr.filter(a => a.startsWith("1 FAMS")).map(x => x.substring(7).replace("@F", "").replace("@", ""))
-                val parentRelation = arr.find(s => s.startsWith("1 FAMC")).getOrElse("1 FAMC ").toString.substring(7).replace("@F", "").replace("@", "")
-                val id = arr.find(s => s.startsWith("0 @P")).getOrElse("0 @P").toString.replace("0 @P", "").replace("@ INDI ", "")
-
-
-                Person(id, firstName, surname, dateOfBirth, placeOfBirth, dateOfDeath, placeOfDeath, sex, childRelations, parentRelation)
-              } else {
-                Person("UNKNOWN", "UNKNOWN", "UNKNOWN", "UNKNOWN", "UNKNOWN", "UNKNOWN", "UNKNOWN", "UNKNOWN", List("UNKNOWN"), "UNKNOWN")
-
-              }
-
-            }))
-
-            val filteredPersons = persons.map(listPersons => listPersons
-              .filter(person => (person.firstName.toLowerCase.contains(firstName.toLowerCase) || firstName.equals("*")) &&
-                (person.surname.toLowerCase.contains(surname.toLowerCase) || surname.equals("*"))))
-
-            val sinkPersons = filteredPersons.runWith(Sink.seq)
-
+            val sourcePersons: Source[List[Person], Future[IOResult]] = filteredPersonList(personsFrom(listOfPersonStringsFrom(getRequiredLines(stringArrayFrom("etherton-sussex-2.ged")))), firstName, surname)
+            val sinkPersons: Future[List[Person]] = sourcePersons.runWith(Sink.head)
             complete(sinkPersons)
           }
         },
@@ -420,81 +184,8 @@ Seq[List[Person]]
       concat(
         get {
           parameters('firstName ? "*", 'surname ? "*") { (firstName, surname) =>
-
-            val file = Paths.get(ClassLoader.getSystemResource("etherton-usa-1.ged").toURI)
-
-            val source: Source[ByteString, Future[IOResult]] = FileIO.fromPath(file)
-            val arrayStrings = source.via(Framing.delimiter(
-              ByteString("\r\n"), maximumFrameLength = 500, allowTruncation = true))
-              .map(_.utf8String).filter(row => row.startsWith("2 PLAC") || row.startsWith("2 DATE") || row.startsWith("1 BIRT")
-              || row.startsWith("1 SEX") || row.startsWith("0 @P") || row.startsWith("1 NAME")  || row.startsWith("1 DEAT")
-              || row.startsWith("1 FAMC") ||  row.startsWith("1 FAMS") )
-              .fold(List(): List[List[String]])((acc: List[List[String]], row: String) => {
-                row.startsWith("0 @P") match {
-                  case true => List(row) :: acc
-                  case false => acc match {
-                    case h :: Nil => (row :: h) :: Nil
-                    case h :: t => (row :: h) :: t
-                  }
-                }
-              })
-            val persons: Source[List[Person], Future[IOResult]] = arrayStrings.map(a => a.map( arr1 => {
-              var arr = arr1.reverse
-              val name = arr.find(s => s.startsWith("1 NAME")).getOrElse("1 NAME ").toString.substring(7).split("/")
-              val firstName = name(0)
-              if (!firstName.equals("Ancestry.com")) {
-                val surname = if (name.length > 1) name(1).replace("/", "") else ""
-                val indexBirth = arr.indexOf("1 BIRT ");
-                var dateOfBirth = "unknown"
-                var placeOfBirth = "unknown"
-                if (indexBirth >= 0) {
-                  if (indexBirth + 1 <= arr.size - 1) {
-                    if (arr(indexBirth + 1).startsWith("2 DATE")) {
-                      dateOfBirth = arr(indexBirth + 1).toString.substring(7)
-                    }
-                  }
-                  if (indexBirth + 2 <= arr.size - 1) {
-                    if (arr(indexBirth + 2).startsWith("2 PLAC")) {
-                      placeOfBirth = arr(indexBirth + 2).toString.substring(7)
-                    }
-                  }
-                }
-                val indexDeath = arr.indexOf("1 DEAT ");
-                var dateOfDeath = "unknown"
-                var placeOfDeath = "unknown"
-                if (indexDeath >= 0) {
-                  if (indexDeath + 1 <= arr.size - 1) {
-                    if (arr(indexDeath + 1).startsWith("2 DATE")) {
-                      dateOfDeath = arr(indexDeath + 1).toString.substring(7)
-                    }
-                  }
-                  if (indexDeath + 2 <= arr.size - 1) {
-                    if (arr(indexDeath + 2).startsWith("2 PLAC")) {
-                      placeOfDeath = arr(indexDeath + 2).toString.substring(7)
-                    }
-                  }
-
-                }
-                val sex = arr.find(s => s.startsWith("1 SEX")).getOrElse("1 SEX ").toString.substring(6)
-                val childRelations = arr.filter(a => a.startsWith("1 FAMS")).map(x => x.substring(7).replace("@F", "").replace("@", ""))
-                val parentRelation = arr.find(s => s.startsWith("1 FAMC")).getOrElse("1 FAMC ").toString.substring(7).replace("@F", "").replace("@", "")
-                val id = arr.find(s => s.startsWith("0 @P")).getOrElse("0 @P").toString.replace("0 @P", "").replace("@ INDI ", "")
-
-
-                Person(id, firstName, surname, dateOfBirth, placeOfBirth, dateOfDeath, placeOfDeath, sex, childRelations, parentRelation)
-              } else {
-                Person("UNKNOWN", "UNKNOWN", "UNKNOWN", "UNKNOWN", "UNKNOWN", "UNKNOWN", "UNKNOWN", "UNKNOWN", List("UNKNOWN"), "UNKNOWN")
-
-              }
-
-            }))
-
-            val filteredPersons = persons.map(listPersons => listPersons
-              .filter(person => (person.firstName.toLowerCase.contains(firstName.toLowerCase) || firstName.equals("*")) &&
-                (person.surname.toLowerCase.contains(surname.toLowerCase) || surname.equals("*"))))
-
-            val sinkPersons = filteredPersons.runWith(Sink.seq)
-
+            val sourcePersons: Source[List[Person], Future[IOResult]] = filteredPersonList(personsFrom(listOfPersonStringsFrom(getRequiredLines(stringArrayFrom("etherton-usa-1.ged")))), firstName, surname)
+            val sinkPersons: Future[List[Person]] = sourcePersons.runWith(Sink.head)
             complete(sinkPersons)
           }
         },
