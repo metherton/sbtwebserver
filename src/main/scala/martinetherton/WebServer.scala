@@ -7,6 +7,7 @@ import akka.http.scaladsl.Http
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.http.scaladsl.model.{ContentTypes, HttpEntity}
 import akka.http.scaladsl.server.Directives._
+import akka.http.scaladsl.server.{PathMatcher, PathMatchers}
 import akka.stream.{ActorMaterializer, IOResult}
 import akka.stream.scaladsl.{FileIO, Framing, Keep, Sink, Source}
 import akka.util.ByteString
@@ -33,6 +34,8 @@ object WebServer extends App {
   implicit val materializer = ActorMaterializer()
   // needed for the future flatMap/onComplete in the end
   implicit val executionContext = system.dispatcher
+
+  val gedcomFileMap = Map("london1" -> "etherton-london-1.ged")
 
   def stringArrayFrom(gedcomFile: String): Source[String, Future[IOResult]] = {
     val file: Path = Paths.get(ClassLoader.getSystemResource(gedcomFile).toURI)
@@ -120,18 +123,17 @@ object WebServer extends App {
 
 
   val route1 = cors() {
-    path("gedcom" / "london1") {
+    path("gedcom" / Segment) { tree =>
       concat(
         get {
           parameters('firstName ? "*", 'surname ? "*") { (firstName, surname) =>
-            val sourcePersons: Source[List[Person], Future[IOResult]] = filteredPersonList(personsFrom(listOfPersonStringsFrom(getRequiredLines(stringArrayFrom("etherton-london-1.ged")))), firstName, surname)
+            val sourcePersons: Source[List[Person], Future[IOResult]] = filteredPersonList(personsFrom(listOfPersonStringsFrom(getRequiredLines(stringArrayFrom(gedcomFileMap(tree))))), firstName, surname)
             val sinkPersons: Future[List[Person]] = sourcePersons.runWith(Sink.head)
             complete(sinkPersons)
           }
         },
       )
     }
-
   }
 
   val route2 = cors() {
