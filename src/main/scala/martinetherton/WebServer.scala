@@ -1,18 +1,17 @@
 package martinetherton
 import java.nio.file.{Path, Paths}
 import java.sql.Timestamp
+import java.time.LocalDateTime
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
-import akka.http.scaladsl.model.{ContentTypes, HttpEntity}
 import akka.http.scaladsl.server.Directives._
-import akka.http.scaladsl.server.{PathMatcher, PathMatchers}
+import akka.stream.scaladsl.{FileIO, Flow, Framing, Sink, Source}
 import akka.stream.{ActorMaterializer, IOResult}
-import akka.stream.scaladsl.{FileIO, Framing, Keep, Sink, Source}
 import akka.util.ByteString
-import spray.json.DefaultJsonProtocol._
 import ch.megard.akka.http.cors.scaladsl.CorsDirectives._
+import spray.json.DefaultJsonProtocol._
 import spray.json.{DeserializationException, JsNumber, JsValue, JsonFormat}
 
 import scala.concurrent.Future
@@ -29,13 +28,69 @@ object WebServer extends App {
       case _ => throw new DeserializationException("Date expected")
     }
   }
-  implicit val messageFormat = jsonFormat10(Person)
+  implicit val gedcomPersonFormat = jsonFormat10(GedcomPerson)
+  implicit val personFormat = jsonFormat10(Person)
   implicit val system = ActorSystem("my-system")
   implicit val materializer = ActorMaterializer()
   // needed for the future flatMap/onComplete in the end
   implicit val executionContext = system.dispatcher
 
-  val gedcomFileMap = Map("london1" -> "etherton-london-1.ged")
+  val gedcomFileMap =
+    Map("london1" -> "etherton-london-1.ged",
+      "sussex1" -> "etherton-sussex-1.ged",
+      "london2" -> "etherton-london-2.ged",
+      "sussex2" -> "etherton-sussex-2.ged",
+      "usa1" -> "etherton-usa-1.ged")
+
+
+  val gedcom = cors() {
+    path("gedcom" / Segment) { tree =>
+      concat(
+        get {
+          parameters('firstName ? "*", 'surname ? "*") { (firstName, surname) =>
+            val sourcePersons: Source[List[GedcomPerson], Future[IOResult]] = filteredPersonList(personsFrom(listOfPersonStringsFrom(getRequiredLines(stringArrayFrom(gedcomFileMap(tree))))), firstName, surname)
+            val sinkPersons: Future[List[GedcomPerson]] = sourcePersons.runWith(Sink.head)
+            complete(sinkPersons)
+          }
+        },
+      )
+    }
+  }
+
+  val repo = new PersonRepository
+
+  def convertGedcomToPerson(gedcomPerson: GedcomPerson):Person = {
+    Person(gedcomPerson.firstName, gedcomPerson.surname, Timestamp.valueOf(LocalDateTime.now()), gedcomPerson.place, gedcomPerson.place, gedcomPerson.place, None, 1L, 1L, 1L)
+  //case class Person(firstName: String, surname: String, dateOfBirth: Timestam, address: String, city: String, country: String,  id: Option[Long] = None, personId: Long, fatherId: Long, motherId: Long)
+
+  }
+  val sourcePersons: Source[List[GedcomPerson], Future[IOResult]] = filteredPersonList(personsFrom(listOfPersonStringsFrom(getRequiredLines(stringArrayFrom(gedcomFileMap("london1"))))), "*", "*")
+  val done = sourcePersons.via(Flow[List[GedcomPerson]].map(p => p.map(c => convertGedcomToPerson(c)))).runForeach(person => println(person))
+  done.onComplete(_ => system.terminate())
+
+
+  val person = cors() {
+    path("persons" ) {
+      concat(
+        post {
+          entity(as[Person]) { person =>
+            val insAct = repo.insert(person)
+            onComplete(insAct) { done =>
+              complete(s"new person added with id: ${insAct}")
+            }
+          }
+        },
+      )
+    }
+  }
+
+  val bindingFuture = Http().bindAndHandle(gedcom ~ person, "0.0.0.0", 8080)
+
+  println(s"Server online at http://localhost:8080/\nPress RETURN to stop...")
+  StdIn.readLine() // let it run until user presses return
+  bindingFuture
+    .flatMap(_.unbind()) // trigger unbinding from the port
+    .onComplete(_ => system.terminate()) // and shutdown when done
 
   def stringArrayFrom(gedcomFile: String): Source[String, Future[IOResult]] = {
     val file: Path = Paths.get(ClassLoader.getSystemResource(gedcomFile).toURI)
@@ -62,14 +117,14 @@ object WebServer extends App {
     })
   }
 
-  def personsFrom(personStringArrays: Source[List[List[String]], Future[IOResult]]): Source[List[Person], Future[IOResult]] = {
+  def personsFrom(personStringArrays: Source[List[List[String]], Future[IOResult]]): Source[List[GedcomPerson], Future[IOResult]] = {
     personStringArrays.map(a => a.map( arr1 => {
       var arr = arr1.reverse
       val name = arr.find(s => s.startsWith("1 NAME")).getOrElse("1 NAME ").toString.substring(7).split("/")
       val firstName = name(0)
       if (!firstName.equals("Ancestry.com")) {
         val surname = if (name.length > 1) name(1).replace("/", "") else ""
-        val indexBirth = arr.indexOf("1 BIRT ");
+        val indexBirth = arr.indexOf("1 BIRT ")
         var dateOfBirth = "unknown"
         var placeOfBirth = "unknown"
         if (indexBirth >= 0) {
@@ -105,118 +160,21 @@ object WebServer extends App {
         val parentRelation = arr.find(s => s.startsWith("1 FAMC")).getOrElse("1 FAMC ").toString.substring(7).replace("@F", "").replace("@", "")
         val id = arr.find(s => s.startsWith("0 @P")).getOrElse("0 @P").toString.replace("0 @P", "").replace("@ INDI ", "")
 
-        Person(id, firstName, surname, dateOfBirth, placeOfBirth, dateOfDeath, placeOfDeath, sex, childRelations, parentRelation)
+        GedcomPerson(id, firstName, surname, dateOfBirth, placeOfBirth, dateOfDeath, placeOfDeath, sex, childRelations, parentRelation)
       } else {
-        Person("UNKNOWN", "UNKNOWN", "UNKNOWN", "UNKNOWN", "UNKNOWN", "UNKNOWN", "UNKNOWN", "UNKNOWN", List("UNKNOWN"), "UNKNOWN")
-
+        GedcomPerson("UNKNOWN", "UNKNOWN", "UNKNOWN", "UNKNOWN", "UNKNOWN", "UNKNOWN", "UNKNOWN", "UNKNOWN", List("UNKNOWN"), "UNKNOWN")
       }
 
     }))
 
   }
 
-  def filteredPersonList(persons: Source[List[Person], Future[IOResult]], firstName: String, surname: String): Source[List[Person], Future[IOResult]] = {
+  def filteredPersonList(persons: Source[List[GedcomPerson], Future[IOResult]], firstName: String, surname: String): Source[List[GedcomPerson], Future[IOResult]] = {
     persons.map(listPersons => listPersons
       .filter(person => (person.firstName.toLowerCase.contains(firstName.toLowerCase) || firstName.equals("*")) &&
         (person.surname.toLowerCase.contains(surname.toLowerCase) || surname.equals("*"))))
   }
 
 
-  val route1 = cors() {
-    path("gedcom" / Segment) { tree =>
-      concat(
-        get {
-          parameters('firstName ? "*", 'surname ? "*") { (firstName, surname) =>
-            val sourcePersons: Source[List[Person], Future[IOResult]] = filteredPersonList(personsFrom(listOfPersonStringsFrom(getRequiredLines(stringArrayFrom(gedcomFileMap(tree))))), firstName, surname)
-            val sinkPersons: Future[List[Person]] = sourcePersons.runWith(Sink.head)
-            complete(sinkPersons)
-          }
-        },
-      )
-    }
-  }
-
-  val route2 = cors() {
-    path("gedcom" / "sussex1") {
-      concat(
-        get {
-          parameters('firstName ? "*", 'surname ? "*") { (firstName, surname) =>
-            val sourcePersons: Source[List[Person], Future[IOResult]] = filteredPersonList(personsFrom(listOfPersonStringsFrom(getRequiredLines(stringArrayFrom("etherton-sussex-1.ged")))), firstName, surname)
-            val sinkPersons: Future[List[Person]] = sourcePersons.runWith(Sink.head)
-            complete(sinkPersons)
-          }
-        },
-      )
-    }
-
-  }
-
-  val route3 = cors() {
-    path("gedcom" / "london2") {
-      concat(
-        get {
-          parameters('firstName ? "*", 'surname ? "*") { (firstName, surname) =>
-            val sourcePersons: Source[List[Person], Future[IOResult]] = filteredPersonList(personsFrom(listOfPersonStringsFrom(getRequiredLines(stringArrayFrom("etherton-london-2.ged")))), firstName, surname)
-            val sinkPersons: Future[List[Person]] = sourcePersons.runWith(Sink.head)
-            complete(sinkPersons)
-          }
-        },
-      )
-    }
-
-  }
-
-  val route4 = cors() {
-    path("gedcom" / "sussex2") {
-      concat(
-        get {
-          parameters('firstName ? "*", 'surname ? "*") { (firstName, surname) =>
-            val sourcePersons: Source[List[Person], Future[IOResult]] = filteredPersonList(personsFrom(listOfPersonStringsFrom(getRequiredLines(stringArrayFrom("etherton-sussex-2.ged")))), firstName, surname)
-            val sinkPersons: Future[List[Person]] = sourcePersons.runWith(Sink.head)
-            complete(sinkPersons)
-          }
-        },
-      )
-    }
-
-  }
-
-  val route5 = cors() {
-    path("gedcom" / "usa1") {
-      concat(
-        get {
-          parameters('firstName ? "*", 'surname ? "*") { (firstName, surname) =>
-            val sourcePersons: Source[List[Person], Future[IOResult]] = filteredPersonList(personsFrom(listOfPersonStringsFrom(getRequiredLines(stringArrayFrom("etherton-usa-1.ged")))), firstName, surname)
-            val sinkPersons: Future[List[Person]] = sourcePersons.runWith(Sink.head)
-            complete(sinkPersons)
-          }
-        },
-      )
-    }
-
-  }
-
-
-  val route6 = cors() {
-    path("persons") {
-      concat(
-        get {
-          get {
-            complete(HttpEntity(ContentTypes.`text/html(UTF-8)`, "<h1>Say hello to akka-http</h1>"))
-          }
-        },
-
-      )
-    }
-
-  }
-
-  val bindingFuture = Http().bindAndHandle(route1 ~ route2 ~ route3 ~ route4 ~ route5 ~ route6, "0.0.0.0", 8080)
-
-  println(s"Server online at http://localhost:8080/\nPress RETURN to stop...")
-  StdIn.readLine() // let it run until user presses return
-  bindingFuture
-    .flatMap(_.unbind()) // trigger unbinding from the port
-    .onComplete(_ => system.terminate()) // and shutdown when done
 
 }
