@@ -60,12 +60,21 @@ object WebServer extends App {
   val repo = new PersonRepository
 
   def convertGedcomToPerson(gedcomPerson: GedcomPerson):Person = {
-    Person(gedcomPerson.firstName, gedcomPerson.surname, Timestamp.valueOf(LocalDateTime.now()), gedcomPerson.place, gedcomPerson.place, gedcomPerson.place, None, 1L, 1L, 1L)
+  //  Person(gedcomPerson.firstName.getOrElse(""), gedcomPerson.surname.getOrElse(""), Timestamp.valueOf(LocalDateTime.now()), gedcomPerson.place.getOrElse(""), gedcomPerson.place.getOrElse(""), gedcomPerson.place.getOrElse(""), None, 1L, 1L, 1L)
+    Person(gedcomPerson.firstName.getOrElse(""), gedcomPerson.surname.getOrElse(""), Timestamp.valueOf(LocalDateTime.now()), gedcomPerson.place.getOrElse(""), gedcomPerson.place.getOrElse(""), gedcomPerson.place.getOrElse(""), None, 1L, gedcomPerson.parentRelation.getOrElse("1").toLong, 1L)
+  //  Person(gedcomPerson.firstName.getOrElse(""), gedcomPerson.surname.getOrElse(""), Timestamp.valueOf(LocalDateTime.now()), gedcomPerson.place.getOrElse(""), gedcomPerson.place.getOrElse(""), gedcomPerson.place.getOrElse(""), None, gedcomPerson.id.getOrElse("1").toLong, gedcomPerson.parentRelation.getOrElse("1").toLong, 1L)
+
   //case class Person(firstName: String, surname: String, dateOfBirth: Timestam, address: String, city: String, country: String,  id: Option[Long] = None, personId: Long, fatherId: Long, motherId: Long)
 
   }
+
+  def savePerson(p: Person): Person = {
+    val insAct = repo.insert(p)
+    p
+  }
+
   val sourcePersons: Source[List[GedcomPerson], Future[IOResult]] = filteredPersonList(personsFrom(listOfPersonStringsFrom(getRequiredLines(stringArrayFrom(gedcomFileMap("london1"))))), "*", "*")
-  val done = sourcePersons.via(Flow[List[GedcomPerson]].map(p => p.map(c => convertGedcomToPerson(c)))).runForeach(person => println(person))
+  val done = sourcePersons.via(Flow[List[GedcomPerson]].map(p => p.map(c => convertGedcomToPerson(c)).map(per => savePerson(per)))).runForeach(person => println(person))
   done.onComplete(_ => system.terminate())
 
 
@@ -157,12 +166,13 @@ object WebServer extends App {
         }
         val sex = arr.find(s => s.startsWith("1 SEX")).getOrElse("1 SEX ").toString.substring(6)
         val childRelations = arr.filter(a => a.startsWith("1 FAMS")).map(x => x.substring(7).replace("@F", "").replace("@", ""))
-        val parentRelation = arr.find(s => s.startsWith("1 FAMC")).getOrElse("1 FAMC ").toString.substring(7).replace("@F", "").replace("@", "")
+        val parentRelationTemp = arr.find(s => s.startsWith("1 FAMC")).getOrElse("1 FAMC ").toString.substring(7).replace("@F", "").replace("@", "")
+        val parentRelation = if (parentRelationTemp.equals("")) "0" else parentRelationTemp
         val id = arr.find(s => s.startsWith("0 @P")).getOrElse("0 @P").toString.replace("0 @P", "").replace("@ INDI ", "")
 
-        GedcomPerson(id, firstName, surname, dateOfBirth, placeOfBirth, dateOfDeath, placeOfDeath, sex, childRelations, parentRelation)
+        GedcomPerson(Some(id), Some(firstName), Some(surname), Some(dateOfBirth), Some(placeOfBirth), Some(dateOfDeath), Some(placeOfDeath), Some(sex), Some(childRelations), Some(parentRelation))
       } else {
-        GedcomPerson("UNKNOWN", "UNKNOWN", "UNKNOWN", "UNKNOWN", "UNKNOWN", "UNKNOWN", "UNKNOWN", "UNKNOWN", List("UNKNOWN"), "UNKNOWN")
+        GedcomPerson(Some("UNKNOWN"), Some("UNKNOWN"), Some("UNKNOWN"), Some("UNKNOWN"), Some("UNKNOWN"), Some("UNKNOWN"), Some("UNKNOWN"), Some("UNKNOWN"), Some(List("UNKNOWN")), Some("UNKNOWN"))
       }
 
     }))
@@ -171,8 +181,8 @@ object WebServer extends App {
 
   def filteredPersonList(persons: Source[List[GedcomPerson], Future[IOResult]], firstName: String, surname: String): Source[List[GedcomPerson], Future[IOResult]] = {
     persons.map(listPersons => listPersons
-      .filter(person => (person.firstName.toLowerCase.contains(firstName.toLowerCase) || firstName.equals("*")) &&
-        (person.surname.toLowerCase.contains(surname.toLowerCase) || surname.equals("*"))))
+      .filter(person => (person.firstName.getOrElse("").toLowerCase.contains(firstName.toLowerCase) || firstName.equals("*")) &&
+        (person.surname.getOrElse("").toLowerCase.contains(surname.toLowerCase) || surname.equals("*"))))
   }
 
 
