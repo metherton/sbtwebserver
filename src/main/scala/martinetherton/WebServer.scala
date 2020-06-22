@@ -7,15 +7,17 @@ import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.http.scaladsl.server.Directives._
-import akka.stream.scaladsl.{FileIO, Flow, Framing, Sink, Source}
+import akka.stream.scaladsl.{FileIO, Flow, Framing, Keep, Sink, Source}
 import akka.stream.{ActorMaterializer, IOResult}
 import akka.util.ByteString
 import ch.megard.akka.http.cors.scaladsl.CorsDirectives._
 import spray.json.DefaultJsonProtocol._
 import spray.json.{DeserializationException, JsNumber, JsValue, JsonFormat}
 
-import scala.concurrent.Future
+import scala.concurrent.{Await, Future}
+import scala.concurrent.duration._
 import scala.io.StdIn
+import scala.util.Success
 
 object WebServer extends App {
 
@@ -29,7 +31,7 @@ object WebServer extends App {
     }
   }
   implicit val gedcomPersonFormat = jsonFormat10(GedcomPerson)
-  implicit val personFormat = jsonFormat10(Person)
+  implicit val personFormat = jsonFormat13(Person)
   implicit val system = ActorSystem("my-system")
   implicit val materializer = ActorMaterializer()
   // needed for the future flatMap/onComplete in the end
@@ -61,7 +63,7 @@ object WebServer extends App {
 
   def convertGedcomToPerson(gedcomPerson: GedcomPerson):Person = {
   //  Person(gedcomPerson.firstName.getOrElse(""), gedcomPerson.surname.getOrElse(""), Timestamp.valueOf(LocalDateTime.now()), gedcomPerson.place.getOrElse(""), gedcomPerson.place.getOrElse(""), gedcomPerson.place.getOrElse(""), None, 1L, 1L, 1L)
-    Person(gedcomPerson.firstName.getOrElse(""), gedcomPerson.surname.getOrElse(""), Timestamp.valueOf(LocalDateTime.now()), gedcomPerson.place.getOrElse(""), gedcomPerson.place.getOrElse(""), gedcomPerson.place.getOrElse(""), None, gedcomPerson.id.getOrElse("1").toLong, gedcomPerson.parentRelation.getOrElse("1").toLong, 1L)
+    Person(gedcomPerson.firstName.getOrElse(""), gedcomPerson.surname.getOrElse(""), Timestamp.valueOf(LocalDateTime.now()), gedcomPerson.place.getOrElse(""), gedcomPerson.place.getOrElse(""), gedcomPerson.place.getOrElse(""), None, gedcomPerson.id.getOrElse("1").toLong, gedcomPerson.parentRelation.getOrElse("1").toLong, 1L, gedcomPerson.childRelation.getOrElse(List()).mkString(","), gedcomPerson.parentRelation.getOrElse(""), gedcomPerson.sex.getOrElse("M"))
   //  Person(gedcomPerson.firstName.getOrElse(""), gedcomPerson.surname.getOrElse(""), Timestamp.valueOf(LocalDateTime.now()), gedcomPerson.place.getOrElse(""), gedcomPerson.place.getOrElse(""), gedcomPerson.place.getOrElse(""), None, gedcomPerson.id.getOrElse("1").toLong, gedcomPerson.parentRelation.getOrElse("1").toLong, 1L)
 
   //case class Person(firstName: String, surname: String, dateOfBirth: Timestam, address: String, city: String, country: String,  id: Option[Long] = None, personId: Long, fatherId: Long, motherId: Long)
@@ -73,10 +75,29 @@ object WebServer extends App {
     p
   }
 
-  val sourcePersons: Source[List[GedcomPerson], Future[IOResult]] = filteredPersonList(personsFrom(listOfPersonStringsFrom(getRequiredLines(stringArrayFrom(gedcomFileMap("london1"))))), "*", "*")
-  val done = sourcePersons.via(Flow[List[GedcomPerson]].map(p => p.map(c => convertGedcomToPerson(c)).map(per => savePerson(per)))).runForeach(person => println(person))
-  done.onComplete(_ => system.terminate())
+  val originalPersons: Source[List[GedcomPerson], Future[IOResult]] = filteredPersonList(personsFrom(listOfPersonStringsFrom(getRequiredLines(stringArrayFrom(gedcomFileMap("london1"))))), "*", "*")
+  val doneOriginal = originalPersons.via(Flow[List[GedcomPerson]].map(p => p.map(c => convertGedcomToPerson(c)))).toMat(Sink.head)(Keep.right).run()
+  //val persons = Await.result(doneOriginal, 5.seconds)
+  val dummyPerson = Person("", "", Timestamp.valueOf(LocalDateTime.now()),"", "","", None, 0, 0, 0, "", "", "M")
+  doneOriginal.onComplete {
+    case Success(persons) => {
 
+      def addParentIds(p: Person) = {
+        val newMotherId: Long = persons.find(per => per.childRelations.split(",").exists(p1 => p1.equals(p.parentRelation) && per.sex.equals("F") )).headOption.getOrElse(dummyPerson).personId
+        val newFatherId: Long = persons.find(per => per.childRelations.split(",").exists(p1 => p1.equals(p.parentRelation) && per.sex.equals("M") )).headOption.getOrElse(dummyPerson).personId
+        val newP = p.copy(motherId = newMotherId, fatherId = newFatherId)
+        newP
+      }
+
+      val sourcePersons: Source[List[GedcomPerson], Future[IOResult]] = filteredPersonList(personsFrom(listOfPersonStringsFrom(getRequiredLines(stringArrayFrom(gedcomFileMap("london1"))))), "*", "*")
+      val done = sourcePersons.via(Flow[List[GedcomPerson]].map(p => p.map(c => convertGedcomToPerson(c)).map(ps => addParentIds(ps)).map(per => savePerson(per)))).runForeach(person => println(person))
+      done.onComplete(_ => system.terminate())
+    }
+  }
+
+//  val sourcePersons: Source[List[GedcomPerson], Future[IOResult]] = filteredPersonList(personsFrom(listOfPersonStringsFrom(getRequiredLines(stringArrayFrom(gedcomFileMap("london1"))))), "*", "*")
+//  val done = sourcePersons.via(Flow[List[GedcomPerson]].map(p => p.map(c => convertGedcomToPerson(c)).map(per => savePerson(per)))).runForeach(person => println(person))
+//  done.onComplete(_ => system.terminate())
 
   val person = cors() {
     path("persons" ) {

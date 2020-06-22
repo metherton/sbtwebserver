@@ -18,8 +18,11 @@ class PersonRepository {
     def personId = column[Long]("personId")
     def fatherId = column[Long]("fatherId")
     def motherId = column[Long]("motherId")
+    def childRelations = column[String]("childRelations")
+    def parentRelation = column[String]("parentRelation")
+    def sex = column[String]("sex")
 
-    def * = (firstName, surname, dateOfBirth, address, city, country, id.?, personId, fatherId, motherId).mapTo[Person]
+    def * = (firstName, surname, dateOfBirth, address, city, country, id.?, personId, fatherId, motherId, childRelations, parentRelation, sex).mapTo[Person]
   }
 
   val persons = TableQuery[PersonTable]
