@@ -54,10 +54,11 @@ class PersonRepository {
   def exec[T](action: DBIO[T]): Future[T] =
     db.run(action)
 
-  def getPersons() = {
-    val personsAction: DBIO[Seq[Person]] = persons.result
-    val personsFuture: Future[Seq[Person]] = db.run(personsAction)
-    personsFuture
+  def getPersons(firstName: String, surname: String) = (firstName, surname) match {
+    case ("*", "*") => db.run(persons.result)
+    case (firstName, "*") => db.run(persons.filter(_.firstName === firstName).result)
+    case ("*", surname) => db.run(persons.filter(_.surname === surname).result)
+    case (firstName, surname) => db.run(persons.filter(p => p.firstName === firstName && p.surname === surname).result)
   }
 
   def insert(person: Person) = {

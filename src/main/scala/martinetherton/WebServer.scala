@@ -62,12 +62,7 @@ object WebServer extends App {
   val repo = new PersonRepository
 
   def convertGedcomToPerson(gedcomPerson: GedcomPerson):Person = {
-  //  Person(gedcomPerson.firstName.getOrElse(""), gedcomPerson.surname.getOrElse(""), Timestamp.valueOf(LocalDateTime.now()), gedcomPerson.place.getOrElse(""), gedcomPerson.place.getOrElse(""), gedcomPerson.place.getOrElse(""), None, 1L, 1L, 1L)
     Person(gedcomPerson.firstName.getOrElse(""), gedcomPerson.surname.getOrElse(""), Timestamp.valueOf(LocalDateTime.now()), gedcomPerson.place.getOrElse(""), gedcomPerson.place.getOrElse(""), gedcomPerson.place.getOrElse(""), None, gedcomPerson.id.getOrElse("1").toLong, gedcomPerson.parentRelation.getOrElse("1").toLong, 1L, gedcomPerson.childRelation.getOrElse(List()).mkString(","), gedcomPerson.parentRelation.getOrElse(""), gedcomPerson.sex.getOrElse("M"))
-  //  Person(gedcomPerson.firstName.getOrElse(""), gedcomPerson.surname.getOrElse(""), Timestamp.valueOf(LocalDateTime.now()), gedcomPerson.place.getOrElse(""), gedcomPerson.place.getOrElse(""), gedcomPerson.place.getOrElse(""), None, gedcomPerson.id.getOrElse("1").toLong, gedcomPerson.parentRelation.getOrElse("1").toLong, 1L)
-
-  //case class Person(firstName: String, surname: String, dateOfBirth: Timestam, address: String, city: String, country: String,  id: Option[Long] = None, personId: Long, fatherId: Long, motherId: Long)
-
   }
 
   def savePerson(p: Person): Person = {
@@ -75,33 +70,45 @@ object WebServer extends App {
     p
   }
 
-  val originalPersons: Source[List[GedcomPerson], Future[IOResult]] = filteredPersonList(personsFrom(listOfPersonStringsFrom(getRequiredLines(stringArrayFrom(gedcomFileMap("london1"))))), "*", "*")
-  val doneOriginal = originalPersons.via(Flow[List[GedcomPerson]].map(p => p.map(c => convertGedcomToPerson(c)))).toMat(Sink.head)(Keep.right).run()
-  //val persons = Await.result(doneOriginal, 5.seconds)
-  val dummyPerson = Person("", "", Timestamp.valueOf(LocalDateTime.now()),"", "","", None, 0, 0, 0, "", "", "M")
-  doneOriginal.onComplete {
-    case Success(persons) => {
+//  val originalPersons: Source[List[GedcomPerson], Future[IOResult]] = filteredPersonList(personsFrom(listOfPersonStringsFrom(getRequiredLines(stringArrayFrom(gedcomFileMap("london1"))))), "*", "*")
+//  val doneOriginal = originalPersons.via(Flow[List[GedcomPerson]].map(p => p.map(c => convertGedcomToPerson(c)))).toMat(Sink.head)(Keep.right).run()
+//  val dummyPerson = Person("", "", Timestamp.valueOf(LocalDateTime.now()),"", "","", None, 0, 0, 0, "", "", "M")
+//  doneOriginal.onComplete {
+//    case Success(persons) => {
+//
+//      def addParentIds(p: Person) = {
+//        val newMotherId: Long = persons.find(per => per.childRelations.split(",").exists(p1 => p1.equals(p.parentRelation) && per.sex.equals("F") )).headOption.getOrElse(dummyPerson).personId
+//        val newFatherId: Long = persons.find(per => per.childRelations.split(",").exists(p1 => p1.equals(p.parentRelation) && per.sex.equals("M") )).headOption.getOrElse(dummyPerson).personId
+//        val newP = p.copy(motherId = newMotherId, fatherId = newFatherId)
+//        newP
+//      }
+//
+//      val sourcePersons: Source[List[GedcomPerson], Future[IOResult]] = filteredPersonList(personsFrom(listOfPersonStringsFrom(getRequiredLines(stringArrayFrom(gedcomFileMap("london1"))))), "*", "*")
+//      val done = sourcePersons.via(Flow[List[GedcomPerson]].map(p => p.map(c => convertGedcomToPerson(c)).map(ps => addParentIds(ps)).map(per => savePerson(per)))).runForeach(person => println(person))
+//      done.onComplete(_ => system.terminate())
+//    }
+//  }
 
-      def addParentIds(p: Person) = {
-        val newMotherId: Long = persons.find(per => per.childRelations.split(",").exists(p1 => p1.equals(p.parentRelation) && per.sex.equals("F") )).headOption.getOrElse(dummyPerson).personId
-        val newFatherId: Long = persons.find(per => per.childRelations.split(",").exists(p1 => p1.equals(p.parentRelation) && per.sex.equals("M") )).headOption.getOrElse(dummyPerson).personId
-        val newP = p.copy(motherId = newMotherId, fatherId = newFatherId)
-        newP
-      }
-
-      val sourcePersons: Source[List[GedcomPerson], Future[IOResult]] = filteredPersonList(personsFrom(listOfPersonStringsFrom(getRequiredLines(stringArrayFrom(gedcomFileMap("london1"))))), "*", "*")
-      val done = sourcePersons.via(Flow[List[GedcomPerson]].map(p => p.map(c => convertGedcomToPerson(c)).map(ps => addParentIds(ps)).map(per => savePerson(per)))).runForeach(person => println(person))
-      done.onComplete(_ => system.terminate())
-    }
-  }
-
-//  val sourcePersons: Source[List[GedcomPerson], Future[IOResult]] = filteredPersonList(personsFrom(listOfPersonStringsFrom(getRequiredLines(stringArrayFrom(gedcomFileMap("london1"))))), "*", "*")
-//  val done = sourcePersons.via(Flow[List[GedcomPerson]].map(p => p.map(c => convertGedcomToPerson(c)).map(per => savePerson(per)))).runForeach(person => println(person))
-//  done.onComplete(_ => system.terminate())
 
   val person = cors() {
     path("persons" ) {
       concat(
+        get {
+          parameters('firstName ? "*", 'surname ? "*") { (firstName, surname) =>
+            //     import martinetherton.PersonRepository
+            //     val messagesResults = result(messagesFuture, 2.seconds)
+            //          val sql = messages.result.statements.mkString
+
+            val result = repo.getPersons(firstName, surname)
+//            val filteredPersons = persons.map(listPersons => listPersons
+//              .filter(person => (person.firstName.toLowerCase.contains(firstName.toLowerCase) || firstName.equals("*")) &&
+//                (person.surname.toLowerCase.contains(surname.toLowerCase) || surname.equals("*"))))
+//
+//            val sinkPersons = filteredPersons.runWith(Sink.seq)
+
+            complete(result)
+          }
+        },
         post {
           entity(as[Person]) { person =>
             val insAct = repo.insert(person)
