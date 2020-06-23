@@ -61,13 +61,25 @@ object WebServer extends App {
 
   val repo = new PersonRepository
 
-  def convertGedcomToPerson(gedcomPerson: GedcomPerson):Person = {
-    Person(gedcomPerson.firstName.getOrElse(""), gedcomPerson.surname.getOrElse(""), Timestamp.valueOf(LocalDateTime.now()), gedcomPerson.place.getOrElse(""), gedcomPerson.place.getOrElse(""), gedcomPerson.place.getOrElse(""), None, gedcomPerson.id.getOrElse("1").toLong, gedcomPerson.parentRelation.getOrElse("1").toLong, 1L, gedcomPerson.childRelation.getOrElse(List()).mkString(","), gedcomPerson.parentRelation.getOrElse(""), gedcomPerson.sex.getOrElse("M"))
-  }
-
-  def savePerson(p: Person): Person = {
-    val insAct = repo.insert(p)
-    p
+  val person = cors() {
+    path("persons" ) {
+      concat(
+        get {
+          parameters('firstName ? "*", 'surname ? "*") { (firstName, surname) =>
+            val result = repo.getPersons(firstName, surname)
+            complete(result)
+          }
+        },
+        post {
+          entity(as[Person]) { person =>
+            val insAct = repo.insert(person)
+            onComplete(insAct) { done =>
+              complete(s"new person added with id: ${insAct}")
+            }
+          }
+        },
+      )
+    }
   }
 
 //  val originalPersons: Source[List[GedcomPerson], Future[IOResult]] = filteredPersonList(personsFrom(listOfPersonStringsFrom(getRequiredLines(stringArrayFrom(gedcomFileMap("london1"))))), "*", "*")
@@ -90,27 +102,6 @@ object WebServer extends App {
 //  }
 
 
-  val person = cors() {
-    path("persons" ) {
-      concat(
-        get {
-          parameters('firstName ? "*", 'surname ? "*") { (firstName, surname) =>
-            val result = repo.getPersons(firstName, surname)
-            complete(result)
-          }
-        },
-        post {
-          entity(as[Person]) { person =>
-            val insAct = repo.insert(person)
-            onComplete(insAct) { done =>
-              complete(s"new person added with id: ${insAct}")
-            }
-          }
-        },
-      )
-    }
-  }
-
   val bindingFuture = Http().bindAndHandle(gedcom ~ person, "0.0.0.0", 8080)
 
   println(s"Server online at http://localhost:8080/\nPress RETURN to stop...")
@@ -118,6 +109,21 @@ object WebServer extends App {
   bindingFuture
     .flatMap(_.unbind()) // trigger unbinding from the port
     .onComplete(_ => system.terminate()) // and shutdown when done
+
+
+
+
+  def convertGedcomToPerson(gedcomPerson: GedcomPerson):Person = {
+    Person(gedcomPerson.firstName.getOrElse("").trim(), gedcomPerson.surname.getOrElse(""), Timestamp.valueOf(LocalDateTime.now()), gedcomPerson.place.getOrElse(""), gedcomPerson.place.getOrElse(""), gedcomPerson.place.getOrElse(""), None, gedcomPerson.id.getOrElse("1").toLong, gedcomPerson.parentRelation.getOrElse("1").toLong, 1L, gedcomPerson.childRelation.getOrElse(List()).mkString(","), gedcomPerson.parentRelation.getOrElse(""), gedcomPerson.sex.getOrElse("M"))
+  }
+
+  def savePerson(p: Person): Person = {
+    val insAct = repo.insert(p)
+    p
+  }
+
+
+
 
   def stringArrayFrom(gedcomFile: String): Source[String, Future[IOResult]] = {
     val file: Path = Paths.get(ClassLoader.getSystemResource(gedcomFile).toURI)
