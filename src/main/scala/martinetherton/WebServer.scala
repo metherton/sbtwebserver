@@ -95,17 +95,7 @@ object WebServer extends App {
       concat(
         get {
           parameters('firstName ? "*", 'surname ? "*") { (firstName, surname) =>
-            //     import martinetherton.PersonRepository
-            //     val messagesResults = result(messagesFuture, 2.seconds)
-            //          val sql = messages.result.statements.mkString
-
             val result = repo.getPersons(firstName, surname)
-//            val filteredPersons = persons.map(listPersons => listPersons
-//              .filter(person => (person.firstName.toLowerCase.contains(firstName.toLowerCase) || firstName.equals("*")) &&
-//                (person.surname.toLowerCase.contains(surname.toLowerCase) || surname.equals("*"))))
-//
-//            val sinkPersons = filteredPersons.runWith(Sink.seq)
-
             complete(result)
           }
         },
