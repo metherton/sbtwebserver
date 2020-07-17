@@ -106,7 +106,7 @@ class PersonConverterSpec extends UnitSpec {
     val persons = WebServer.personsFrom(personLines)
     val future = persons.runWith(Sink.head)
     val result = Await.result(future, 5.seconds)
-    assert(result.head.firstName === "Marie L ")
+    assert(result.head.firstName === Some("Marie L "))
 
   }
 
@@ -121,7 +121,7 @@ class PersonConverterSpec extends UnitSpec {
     val personsCalledPercy = WebServer.filteredPersonList(persons, firstName, "*")
     val future = personsCalledPercy.runWith(Sink.head)
     val result = Await.result(future, 5.seconds)
-    assert(result.head.firstName === "Percy ")
+    assert(result.head.firstName === Some("Percy "))
 
   }
 

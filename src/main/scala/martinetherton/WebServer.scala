@@ -122,9 +122,6 @@ object WebServer extends App {
     p
   }
 
-
-
-
   def stringArrayFrom(gedcomFile: String): Source[String, Future[IOResult]] = {
     val file: Path = Paths.get(ClassLoader.getSystemResource(gedcomFile).toURI)
     val source: Source[ByteString, Future[IOResult]] = FileIO.fromPath(file)
