@@ -11,6 +11,7 @@ import akka.stream.scaladsl.{FileIO, Flow, Framing, Keep, Sink, Source}
 import akka.stream.{ActorMaterializer, IOResult}
 import akka.util.ByteString
 import ch.megard.akka.http.cors.scaladsl.CorsDirectives._
+import com.fasterxml.jackson.databind.ObjectMapper
 import spray.json.DefaultJsonProtocol._
 import spray.json.{DeserializationException, JsNumber, JsValue, JsonFormat}
 
@@ -36,6 +37,33 @@ object WebServer extends App {
   implicit val materializer = ActorMaterializer()
   // needed for the future flatMap/onComplete in the end
   implicit val executionContext = system.dispatcher
+
+  val choices = List("\"agent_video\"", "\"customer_video\"", "\"agent_screen\"", "\"customer_screen\"")
+  val formattedChoices = choices.mkString(",")
+
+
+  private val videoLayout: String =
+    f"""
+      |{
+      |   "grid": {
+      |       "video_sources":[$formattedChoices]
+      |   }
+      |}
+    """.stripMargin
+
+//  private val videoLayout: String =
+//    """
+//      |{
+//      |   "grid": {
+//      |       "video_sources":["*"]
+//      |   }
+//      |}
+//    """.stripMargin
+
+  private val objectMapper = new ObjectMapper()
+
+  private val parsedVideoLayout = objectMapper.readValue(videoLayout, classOf[java.util.Map[String, AnyRef]])
+
 
   val gedcomFileMap =
     Map("london1" -> "etherton-london-1.ged",

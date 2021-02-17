@@ -11,6 +11,7 @@ val cors = "ch.megard" %% "akka-http-cors" % "0.4.2"
 val slick1 = "com.typesafe.slick" %% "slick" % "3.3.2"
 val slick2 = "org.slf4j" % "slf4j-nop" % "1.7.26"
 val slick3 = "com.typesafe.slick" %% "slick-hikaricp" % "3.3.2"
+val jsonMapper = "com.fasterxml.jackson.core" % "jackson-databind" % "2.9.10"
 //val h2 = "com.h2database" % "h2" % "1.4.199" // See Supported databases, below.
 //val spring = "org.springframework" % "spring" % "2.6.5"
 val logger = "ch.qos.logback" % "logback-classic" % "1.2.3"
@@ -18,6 +19,7 @@ val joda = "joda-time" % "joda-time" % "2.10.5"
 val mysql = "mysql" % "mysql-connector-java" % "8.0.11"
 val httpTest = "com.typesafe.akka" %% "akka-http-testkit" % "10.1.12" % Test
 val streamTest = "com.typesafe.akka" %% "akka-stream-testkit" % "2.6.5" % Test
+
 
 ThisBuild / scalaVersion     := "2.13.1"
 ThisBuild / version          := "0.1.1-SNAPSHOT"
@@ -33,7 +35,7 @@ ThisBuild / organizationName := "martinetherton"
 lazy val root = (project in file("."))
   .settings(
     name := "server",
-    libraryDependencies ++= Seq(scalaTest % Test, akkaHttp, akkaStream, jsonSerializer, akkaActor, persistence, httpTest, streamTest, cors, slick1, slick2, slick3, mysql, logger, joda)
+    libraryDependencies ++= Seq(scalaTest % Test, jsonMapper, akkaHttp, akkaStream, jsonSerializer, akkaActor, persistence, httpTest, streamTest, cors, slick1, slick2, slick3, mysql, logger, joda)
   )
 
 
