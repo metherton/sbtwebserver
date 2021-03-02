@@ -1,5 +1,6 @@
 import Dependencies._
 import com.typesafe.sbt.SbtNativePackager.autoImport.NativePackagerHelper._
+import com.typesafe.sbt.packager.docker._
 
 
 val akkaHttp = "com.typesafe.akka" %% "akka-http"   % "10.1.12"
@@ -66,6 +67,8 @@ assemblyMergeStrategy in assembly := {
   case PathList("reference.conf") => MergeStrategy.concat
   case x => MergeStrategy.first
 }
+
+
 
 // Uncomment the following for publishing to Sonatype.
 // See https://www.scala-sbt.org/1.x/docs/Using-Sonatype.html for more detail.
