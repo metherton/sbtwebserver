@@ -63,67 +63,67 @@ class PersonConverterSpec extends UnitSpec {
       factorials.map(num => ByteString(s"$num\n")).runWith(FileIO.toPath(Paths.get("factorials.txt")))
   }
 
-  it should "read file into Source[String...]" in {
-    val stringSource: Source[String, Future[IOResult]] = WebServer.stringArrayFrom("etherton-london-1.ged")
-    val future = stringSource.runWith(Sink.head)
-    val result = Await.result(future, 5.seconds)
-    assert(result.startsWith("0 HEAD") == true)
-  }
+//  it should "read file into Source[String...]" in {
+//    val stringSource: Source[String, Future[IOResult]] = WebServer.stringArrayFrom("etherton-london-1.ged")
+//    val future = stringSource.runWith(Sink.head)
+//    val result = Await.result(future, 5.seconds)
+//    assert(result.startsWith("0 HEAD") == true)
+//  }
 
-  it should "output read file into String" in {
-    val stringSource: Source[String, Future[IOResult]] = WebServer.stringArrayFrom("etherton-london-1.ged")
- //   val future = stringSource.runForeach(i => println(i))
-  }
+//  it should "output read file into String" in {
+//    val stringSource: Source[String, Future[IOResult]] = WebServer.stringArrayFrom("etherton-london-1.ged")
+// //   val future = stringSource.runForeach(i => println(i))
+//  }
 
-  it should "filter only the lines we need" in {
-    val stringSource: Source[String, Future[IOResult]] = WebServer.stringArrayFrom("etherton-london-1.ged")
+//  it should "filter only the lines we need" in {
+//    val stringSource: Source[String, Future[IOResult]] = WebServer.stringArrayFrom("etherton-london-1.ged")
+//
+//    val filteredArray: Source[String, Future[IOResult]] = WebServer.getRequiredLines(stringSource)
+//    val future: Future[Seq[String]] = filteredArray.runWith(Sink.seq)
+//    val result = Await.result(future, 5.seconds)
+//    assert(result.head.startsWith("0 @P7@ INDI") == true)
+//  }
 
-    val filteredArray: Source[String, Future[IOResult]] = WebServer.getRequiredLines(stringSource)
-    val future: Future[Seq[String]] = filteredArray.runWith(Sink.seq)
-    val result = Await.result(future, 5.seconds)
-    assert(result.head.startsWith("0 @P7@ INDI") == true)
-  }
+//  it should "group the filtered lines into person lines" in {
+//    val stringSource: Source[String, Future[IOResult]] = WebServer.stringArrayFrom("etherton-london-1.ged")
+//
+//    val filteredArray: Source[String, Future[IOResult]] = WebServer.getRequiredLines(stringSource)
+//    val personLines: Source[List[List[String]], Future[IOResult]] = WebServer.listOfPersonStringsFrom(filteredArray)
+//    //val future = personLines.runForeach(l => println(l))
+//    val future = personLines.runWith(Sink.head)
+// //   val result = Await.result(future, 5.seconds)
+////    result.foreach(l => l.foreach(x => println(x)))
+//    //val future: Future[Seq[List[List[String]]]] = personLines.runWith(Sink.seq)
+//
+//  }
 
-  it should "group the filtered lines into person lines" in {
-    val stringSource: Source[String, Future[IOResult]] = WebServer.stringArrayFrom("etherton-london-1.ged")
-
-    val filteredArray: Source[String, Future[IOResult]] = WebServer.getRequiredLines(stringSource)
-    val personLines: Source[List[List[String]], Future[IOResult]] = WebServer.listOfPersonStringsFrom(filteredArray)
-    //val future = personLines.runForeach(l => println(l))
-    val future = personLines.runWith(Sink.head)
- //   val result = Await.result(future, 5.seconds)
-//    result.foreach(l => l.foreach(x => println(x)))
-    //val future: Future[Seq[List[List[String]]]] = personLines.runWith(Sink.seq)
-
-  }
-
-  it should "get list of persons from arrays of person strings" in {
-    val stringSource: Source[String, Future[IOResult]] = WebServer.stringArrayFrom("etherton-london-1.ged")
-
-    val filteredArray: Source[String, Future[IOResult]] = WebServer.getRequiredLines(stringSource)
-    val personLines: Source[List[List[String]], Future[IOResult]] = WebServer.listOfPersonStringsFrom(filteredArray)
-    //val future = personLines.runForeach(l => println(l))
-    val persons = WebServer.personsFrom(personLines)
-    val future = persons.runWith(Sink.head)
-    val result = Await.result(future, 5.seconds)
-    assert(result.head.firstName === Some("Marie L "))
-
-  }
-
-  it should "filters persons with first name Percy" in {
-    val stringSource: Source[String, Future[IOResult]] = WebServer.stringArrayFrom("etherton-london-1.ged")
-
-    val filteredArray: Source[String, Future[IOResult]] = WebServer.getRequiredLines(stringSource)
-    val personLines: Source[List[List[String]], Future[IOResult]] = WebServer.listOfPersonStringsFrom(filteredArray)
-    //val future = personLines.runForeach(l => println(l))
-    val persons = WebServer.personsFrom(personLines)
-    val firstName = "Percy "
-    val personsCalledPercy = WebServer.filteredPersonList(persons, firstName, "*")
-    val future = personsCalledPercy.runWith(Sink.head)
-    val result = Await.result(future, 5.seconds)
-    assert(result.head.firstName === Some("Percy "))
-
-  }
+//  it should "get list of persons from arrays of person strings" in {
+//    val stringSource: Source[String, Future[IOResult]] = WebServer.stringArrayFrom("etherton-london-1.ged")
+//
+//    val filteredArray: Source[String, Future[IOResult]] = WebServer.getRequiredLines(stringSource)
+//    val personLines: Source[List[List[String]], Future[IOResult]] = WebServer.listOfPersonStringsFrom(filteredArray)
+//    //val future = personLines.runForeach(l => println(l))
+//    val persons = WebServer.personsFrom(personLines)
+//    val future = persons.runWith(Sink.head)
+//    val result = Await.result(future, 5.seconds)
+//    assert(result.head.firstName === Some("Marie L "))
+//
+//  }
+//
+//  it should "filters persons with first name Percy" in {
+//    val stringSource: Source[String, Future[IOResult]] = WebServer.stringArrayFrom("etherton-london-1.ged")
+//
+//    val filteredArray: Source[String, Future[IOResult]] = WebServer.getRequiredLines(stringSource)
+//    val personLines: Source[List[List[String]], Future[IOResult]] = WebServer.listOfPersonStringsFrom(filteredArray)
+//    //val future = personLines.runForeach(l => println(l))
+//    val persons = WebServer.personsFrom(personLines)
+//    val firstName = "Percy "
+//    val personsCalledPercy = WebServer.filteredPersonList(persons, firstName, "*")
+//    val future = personsCalledPercy.runWith(Sink.head)
+//    val result = Await.result(future, 5.seconds)
+//    assert(result.head.firstName === Some("Percy "))
+//
+//  }
 
 
 }
