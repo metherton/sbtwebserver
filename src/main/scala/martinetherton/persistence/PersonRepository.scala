@@ -1,6 +1,9 @@
-package martinetherton
+package martinetherton.persistence
 
 import java.sql.Timestamp
+
+import martinetherton.domain.Person
+
 import scala.concurrent.Future
 
 class PersonRepository {

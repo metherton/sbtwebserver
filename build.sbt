@@ -44,7 +44,7 @@ lazy val root = (project in file("."))
 enablePlugins(JavaAppPackaging)
 enablePlugins(DockerPlugin)
 
-mainClass in Compile := Some("martinetherton.WebServer")
+mainClass in Compile := Some("martinetherton.web.WebServer")
 discoveredMainClasses in Compile := Seq()
 
 mappings in Universal ++= {

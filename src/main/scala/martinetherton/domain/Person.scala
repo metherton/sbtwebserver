@@ -1,4 +1,4 @@
-package martinetherton
+package martinetherton.domain
 
 import java.sql.Timestamp
 
