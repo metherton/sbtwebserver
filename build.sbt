@@ -69,8 +69,7 @@ assemblyMergeStrategy in assembly := {
 }
 
 dockerCommands+=Cmd("USER", "root")
-dockerCommands += Cmd("RUN" ,"openssl s_client -showcerts -connect financialmodelingprep.com:443 </dev/null > fin.cert")
-dockerCommands+= Cmd("RUN" , "keytool -importcert -noprompt -alias 'xyzBundle' -file fin.cert -storepass changeit -keystore /usr/lib/jvm/java-1.8- openjdk/jre/lib/security/cacerts")
+dockerCommands+= Cmd("RUN" , "keytool -import -noprompt -file /opt/docker/config/fin.cert  -storepass changeit -alias fintech -keystore /usr/local/openjdk-8/jre/lib/security/cacerts")
 
 
 // Uncomment the following for publishing to Sonatype.
