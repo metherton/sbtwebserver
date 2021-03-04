@@ -26,20 +26,13 @@ object WebServer extends App with Marshallers {
   val routing = cors() {
     path("liststocks") {
       get {
-//        val httpsConnectionContext = ConnectionContext.https(SSLContext.getDefault)
-//        val connectionFlow = Http().outgoingConnectionHttps(Host("fintech"), SslPort, httpsConnectionContext)
-//
-//        def oneOffRequest(request: HttpRequest) =
-//          Source.single(request).via(connectionFlow).runWith(Sink.head)
-//
-//        onComplete() {
         onComplete(Request(Host("fintech"), Urls("stocksList")).get) {
           case Success(response) =>
             val strictEntityFuture = response.entity.toStrict(10 seconds)
-            val stocksFuture = strictEntityFuture.map(_.data.utf8String.parseJson.convertTo[List[Stock]])
+            val listStocksFuture = strictEntityFuture.map(_.data.utf8String.parseJson.convertTo[List[Stock]])
 
-            onComplete(stocksFuture) {
-              case Success(x) => complete(x)
+            onComplete(listStocksFuture) {
+              case Success(listStocks) => complete(listStocks)
               case Failure(ex) => failWith(ex)
             }
 
