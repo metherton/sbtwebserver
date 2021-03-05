@@ -9,7 +9,7 @@ import akka.stream.scaladsl.{Sink, Source}
 import ch.megard.akka.http.cors.scaladsl.CorsDirectives._
 import javax.net.ssl.SSLContext
 import martinetherton.client.Request
-import martinetherton.domain.{Constants, Executive, Resource, Stock, TickerSearch, Url}
+import martinetherton.domain.{Constants, Executive, Resource, Stock, SymbolName, Url}
 import martinetherton.mappers.Marshallers
 import martinetherton.domain.Constants._
 import spray.json._
@@ -24,13 +24,13 @@ object WebServer extends App with Marshallers {
   implicit val executionContext = system.dispatcher
 
   val routing = cors() {
-    path("search" ) {
+    path("tickerSearch" ) {
       parameters('query.as[String], 'limit.as[String], 'exchange.as[String]) { (query, limit, exchange) =>
         get {
           onComplete(Request(Host("fintech"), Url(List("search"), List(("query", query), ("limit", limit), ("exchange", exchange)))).get) {
             case Success(response) =>
               val strictEntityFuture = response.entity.toStrict(10 seconds)
-              val listTickerSearchFuture = strictEntityFuture.map(_.data.utf8String.parseJson.convertTo[List[TickerSearch]])
+              val listTickerSearchFuture = strictEntityFuture.map(_.data.utf8String.parseJson.convertTo[List[SymbolName]])
 
               onComplete(listTickerSearchFuture) {
                 case Success(listTickerSearch) => complete(listTickerSearch)
