@@ -9,7 +9,7 @@ import akka.stream.scaladsl.{Sink, Source}
 import ch.megard.akka.http.cors.scaladsl.CorsDirectives._
 import javax.net.ssl.SSLContext
 import martinetherton.client.Request
-import martinetherton.domain.{Constants, Executive, Resource, Stock, SymbolName, Url}
+import martinetherton.domain.{Constants, CurrencyExchangeRate, Executive, Resource, Stock, SymbolName, Url}
 import martinetherton.mappers.Marshallers
 import martinetherton.domain.Constants._
 import spray.json._
@@ -57,7 +57,24 @@ object WebServer extends App with Marshallers {
           case Failure(ex) => failWith(ex)
         }
       }
+    } ~
+    path("currencyExchangeRate") {
+      get {
+        onComplete(Request(Host("fintech"), Url(List("fx"), Nil)).get) {
+          case Success(response) =>
+            val strictEntityFuture = response.entity.toStrict(10 seconds)
+            val listStocksFuture = strictEntityFuture.map(_.data.utf8String.parseJson.convertTo[List[CurrencyExchangeRate]])
+
+            onComplete(listStocksFuture) {
+              case Success(listStocks) => complete(listStocks)
+              case Failure(ex) => failWith(ex)
+            }
+
+          case Failure(ex) => failWith(ex)
+        }
+      }
     }
+
   }
 
   val bindingFuture = Http().bindAndHandle(routing, "0.0.0.0", 8080)
