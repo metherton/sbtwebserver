@@ -3,9 +3,9 @@ import com.typesafe.sbt.SbtNativePackager.autoImport.NativePackagerHelper._
 import com.typesafe.sbt.packager.docker._
 
 
-val akkaHttp = "com.typesafe.akka" %% "akka-http"   % "10.1.12"
+val akkaHttp = "com.typesafe.akka" %% "akka-http"   % "10.2.4"
 val akkaStream = "com.typesafe.akka" %% "akka-stream" % "2.6.5" // or whatever the latest version is
-val jsonSerializer = "com.typesafe.akka" %% "akka-http-spray-json" % "10.1.12"
+val jsonSerializer = "com.typesafe.akka" %% "akka-http-spray-json" % "10.2.4"
 val akkaActor = "com.typesafe.akka" %% "akka-actor"   % "2.6.5"
 val persistence = "com.typesafe.akka" %% "akka-persistence-query" % "2.6.5"
 val cors = "ch.megard" %% "akka-http-cors" % "0.4.2"
@@ -18,7 +18,7 @@ val jsonMapper = "com.fasterxml.jackson.core" % "jackson-databind" % "2.9.10"
 val logger = "ch.qos.logback" % "logback-classic" % "1.2.3"
 val joda = "joda-time" % "joda-time" % "2.10.5"
 val mysql = "mysql" % "mysql-connector-java" % "8.0.11"
-val httpTest = "com.typesafe.akka" %% "akka-http-testkit" % "10.1.12" % Test
+val httpTest = "com.typesafe.akka" %% "akka-http-testkit" % "10.2.4" % Test
 val streamTest = "com.typesafe.akka" %% "akka-stream-testkit" % "2.6.5" % Test
 
 

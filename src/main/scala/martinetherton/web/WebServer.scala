@@ -1,15 +1,18 @@
 package martinetherton.web
 
+import java.io.InputStream
+import java.security.{KeyStore, SecureRandom}
+
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model.HttpRequest
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.server.directives.Credentials
-import akka.http.scaladsl.{ConnectionContext, Http}
+import akka.http.scaladsl.{ConnectionContext, Http, HttpsConnectionContext}
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{Sink, Source}
 import ch.megard.akka.http.cors.scaladsl.CorsDirectives._
-import javax.net.ssl.SSLContext
+import javax.net.ssl.{KeyManagerFactory, SSLContext, TrustManagerFactory}
 import martinetherton.client.Request
 import martinetherton.domain.{Constants, CurrencyExchangeRate, Executive, Loser, Resource, SectorChange, SectorPerformance, Stock, SymbolName, Url}
 import martinetherton.mappers.Marshallers
@@ -106,7 +109,28 @@ object WebServer extends App with Marshallers {
     }
   }
 
-  val bindingFuture = Http().bindAndHandle(routing, "0.0.0.0", 8080)
+//  val password: Array[Char] = "change me".toCharArray // do not store passwords in code, read them from somewhere safe!
+  val password: Array[Char] = "akka-https".toCharArray // do not store passwords in code, read them from somewhere safe!
+
+  val ks: KeyStore = KeyStore.getInstance("PKCS12")
+//  val keystore: InputStream = getClass.getClassLoader.getResourceAsStream("server.p12")
+
+  val keystore: InputStream = getClass.getClassLoader.getResourceAsStream("keystore.pkcs12")
+
+  require(keystore != null, "Keystore required!")
+  ks.load(keystore, password)
+
+  val keyManagerFactory: KeyManagerFactory = KeyManagerFactory.getInstance("SunX509")
+  keyManagerFactory.init(ks, password)
+
+  val tmf: TrustManagerFactory = TrustManagerFactory.getInstance("SunX509")
+  tmf.init(ks)
+
+  val sslContext: SSLContext = SSLContext.getInstance("TLS")
+  sslContext.init(keyManagerFactory.getKeyManagers, tmf.getTrustManagers, new SecureRandom)
+  val https: HttpsConnectionContext = ConnectionContext.httpsServer(sslContext)
+
+  val bindingFuture = Http().newServerAt("localhost", 8443).enableHttps(https).bind(routing)
 
   println(s"Server online at http://localhost:8080/\nPress RETURN to stop...")
   StdIn.readLine() // let it run until user presses return
