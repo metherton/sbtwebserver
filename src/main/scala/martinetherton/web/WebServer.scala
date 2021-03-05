@@ -9,7 +9,7 @@ import akka.stream.scaladsl.{Sink, Source}
 import ch.megard.akka.http.cors.scaladsl.CorsDirectives._
 import javax.net.ssl.SSLContext
 import martinetherton.client.Request
-import martinetherton.domain.{Constants, CurrencyExchangeRate, Executive, Resource, Stock, SymbolName, Url}
+import martinetherton.domain.{Constants, CurrencyExchangeRate, Executive, Loser, Resource, SectorChange, SectorPerformance, Stock, SymbolName, Url}
 import martinetherton.mappers.Marshallers
 import martinetherton.domain.Constants._
 import spray.json._
@@ -24,9 +24,9 @@ object WebServer extends App with Marshallers {
   implicit val executionContext = system.dispatcher
 
   val routing = cors() {
-    path("tickerSearch" ) {
-      parameters('query.as[String], 'limit.as[String], 'exchange.as[String]) { (query, limit, exchange) =>
-        get {
+    get {
+      path("tickerSearch" ) {
+        parameters('query.as[String], 'limit.as[String], 'exchange.as[String]) { (query, limit, exchange) =>
           onComplete(Request(Host("fintech"), Url(List("search"), List(("query", query), ("limit", limit), ("exchange", exchange)))).get) {
             case Success(response) =>
               val strictEntityFuture = response.entity.toStrict(10 seconds)
@@ -40,10 +40,8 @@ object WebServer extends App with Marshallers {
             case Failure(ex) => failWith(ex)
           }
         }
-      }
-    } ~
-    path("liststocks") {
-      get {
+      } ~
+      path("liststocks") {
         onComplete(Request(Host("fintech"), Url(List("stock", "list"), Nil)).get) {
           case Success(response) =>
             val strictEntityFuture = response.entity.toStrict(10 seconds)
@@ -56,10 +54,8 @@ object WebServer extends App with Marshallers {
 
           case Failure(ex) => failWith(ex)
         }
-      }
-    } ~
-    path("currencyExchangeRate") {
-      get {
+      } ~
+      path("currencyExchangeRate") {
         onComplete(Request(Host("fintech"), Url(List("fx"), Nil)).get) {
           case Success(response) =>
             val strictEntityFuture = response.entity.toStrict(10 seconds)
@@ -69,12 +65,36 @@ object WebServer extends App with Marshallers {
               case Success(listStocks) => complete(listStocks)
               case Failure(ex) => failWith(ex)
             }
+          case Failure(ex) => failWith(ex)
+        }
+      } ~
+      path("sectorsPerformance") {
+        onComplete(Request(Host("fintech"), Url(List("stock", "sectors-performance"), Nil)).get) {
+          case Success(response) =>
+            val strictEntityFuture = response.entity.toStrict(10 seconds)
+            val listStocksFuture = strictEntityFuture.map(_.data.utf8String.parseJson.convertTo[SectorPerformance])
 
+            onComplete(listStocksFuture) {
+              case Success(listStocks) => complete(listStocks)
+              case Failure(ex) => failWith(ex)
+            }
+          case Failure(ex) => failWith(ex)
+        }
+      } ~
+      path("losers") {
+        onComplete(Request(Host("fintech"), Url(List("losers"), Nil)).get) {
+          case Success(response) =>
+            val strictEntityFuture = response.entity.toStrict(10 seconds)
+            val listStocksFuture = strictEntityFuture.map(_.data.utf8String.parseJson.convertTo[List[Loser]])
+
+            onComplete(listStocksFuture) {
+              case Success(listStocks) => complete(listStocks)
+              case Failure(ex) => failWith(ex)
+            }
           case Failure(ex) => failWith(ex)
         }
       }
     }
-
   }
 
   val bindingFuture = Http().bindAndHandle(routing, "0.0.0.0", 8080)

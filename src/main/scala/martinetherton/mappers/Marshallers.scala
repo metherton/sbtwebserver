@@ -10,6 +10,9 @@ trait Marshallers extends DefaultJsonProtocol  with SprayJsonSupport {
   implicit val executiveFormat = jsonFormat8(Executive)
   implicit val symbolNameFormat = jsonFormat2(SymbolName)
   implicit val currencyExchangeRateFormat = jsonFormat8(CurrencyExchangeRate)
+  implicit val sectorChangeFormat = jsonFormat2(SectorChange)
+  implicit val sectorPerformanceFormat = jsonFormat1(SectorPerformance)
+  implicit val loserFormat = jsonFormat5(Loser)
 
 //  implicit val itemFormat = jsonFormat2(Item)
 //  implicit val orderFormat = jsonFormat1(Order)
