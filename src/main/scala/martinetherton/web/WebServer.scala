@@ -9,7 +9,7 @@ import akka.stream.scaladsl.{Sink, Source}
 import ch.megard.akka.http.cors.scaladsl.CorsDirectives._
 import javax.net.ssl.SSLContext
 import martinetherton.client.Request
-import martinetherton.domain.{Constants, Stock}
+import martinetherton.domain.{Constants, Executive, Resource, Stock, TickerSearch, Url}
 import martinetherton.mappers.Marshallers
 import martinetherton.domain.Constants._
 import spray.json._
@@ -24,9 +24,27 @@ object WebServer extends App with Marshallers {
   implicit val executionContext = system.dispatcher
 
   val routing = cors() {
+    path("search" ) {
+      parameters('query.as[String], 'limit.as[String], 'exchange.as[String]) { (query, limit, exchange) =>
+        get {
+          onComplete(Request(Host("fintech"), Url(List("search"), List(("query", query), ("limit", limit), ("exchange", exchange)))).get) {
+            case Success(response) =>
+              val strictEntityFuture = response.entity.toStrict(10 seconds)
+              val listTickerSearchFuture = strictEntityFuture.map(_.data.utf8String.parseJson.convertTo[List[TickerSearch]])
+
+              onComplete(listTickerSearchFuture) {
+                case Success(listTickerSearch) => complete(listTickerSearch)
+                case Failure(ex) => failWith(ex)
+              }
+
+            case Failure(ex) => failWith(ex)
+          }
+        }
+      }
+    } ~
     path("liststocks") {
       get {
-        onComplete(Request(Host("fintech"), Urls("stocksList")).get) {
+        onComplete(Request(Host("fintech"), Url(List("stock", "list"), Nil)).get) {
           case Success(response) =>
             val strictEntityFuture = response.entity.toStrict(10 seconds)
             val listStocksFuture = strictEntityFuture.map(_.data.utf8String.parseJson.convertTo[List[Stock]])
@@ -40,7 +58,6 @@ object WebServer extends App with Marshallers {
         }
       }
     }
-
   }
 
   val bindingFuture = Http().bindAndHandle(routing, "0.0.0.0", 8080)
