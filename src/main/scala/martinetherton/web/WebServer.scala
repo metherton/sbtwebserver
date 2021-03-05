@@ -3,6 +3,8 @@ package martinetherton.web
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model.HttpRequest
 import akka.http.scaladsl.server.Directives._
+import akka.http.scaladsl.server.Route
+import akka.http.scaladsl.server.directives.Credentials
 import akka.http.scaladsl.{ConnectionContext, Http}
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{Sink, Source}
@@ -24,7 +26,13 @@ object WebServer extends App with Marshallers {
   implicit val executionContext = system.dispatcher
 
   val routing = cors() {
-    get {
+
+    Route.seal {
+      path("secured") {
+        authenticateBasic(realm = "secure site", myUserPassAuthenticator) { userName =>
+          complete(s"The user is '$userName'")
+        }
+      } ~
       path("tickerSearch" ) {
         parameters('query.as[String], 'limit.as[String], 'exchange.as[String]) { (query, limit, exchange) =>
           onComplete(Request(Host("fintech"), Url(List("search"), List(("query", query), ("limit", limit), ("exchange", exchange)))).get) {
@@ -94,6 +102,7 @@ object WebServer extends App with Marshallers {
           case Failure(ex) => failWith(ex)
         }
       }
+
     }
   }
 
@@ -104,5 +113,11 @@ object WebServer extends App with Marshallers {
   bindingFuture
     .flatMap(_.unbind()) // trigger unbinding from the port
     .onComplete(_ => system.terminate()) // and shutdown when done
+
+  def myUserPassAuthenticator(credentials: Credentials): Option[String] =
+    credentials match {
+      case p @ Credentials.Provided(id) if p.verify("p4ssw0rd") => Some(id)
+      case _ => None
+    }
 
 }
