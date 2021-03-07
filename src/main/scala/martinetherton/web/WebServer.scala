@@ -54,22 +54,6 @@ object WebServer extends App with Marshallers {
           }
         }
       } ~
-      path("liststocks") {
-        get {
-          onComplete(Request(Host("fintech"), Url(List("stock", "list"), Nil)).get) {
-            case Success(response) =>
-              val strictEntityFuture = response.entity.toStrict(10 seconds)
-              val listStocksFuture = strictEntityFuture.map(_.data.utf8String.parseJson.convertTo[List[Stock]])
-
-              onComplete(listStocksFuture) {
-                case Success(listStocks) => complete(listStocks)
-                case Failure(ex) => failWith(ex)
-              }
-
-            case Failure(ex) => failWith(ex)
-          }
-        }
-      } ~
       path("currencyExchangeRate") {
         get {
           onComplete(Request(Host("fintech"), Url(List("fx"), Nil)).get) {
@@ -111,6 +95,22 @@ object WebServer extends App with Marshallers {
                 case Success(listStocks) => complete(listStocks)
                 case Failure(ex) => failWith(ex)
               }
+            case Failure(ex) => failWith(ex)
+          }
+        }
+      } ~
+      path("liststocks") {
+        get {
+          onComplete(Request(Host("fintech"), Url(List("stock", "list"), Nil)).get) {
+            case Success(response) =>
+              val strictEntityFuture = response.entity.toStrict(10 seconds)
+              val listStocksFuture = strictEntityFuture.map(_.data.utf8String.parseJson.convertTo[List[Stock]])
+
+              onComplete(listStocksFuture) {
+                case Success(listStocks) => complete(listStocks)
+                case Failure(ex) => failWith(ex)
+              }
+
             case Failure(ex) => failWith(ex)
           }
         }
