@@ -30,21 +30,39 @@ object WebServer extends App with Marshallers {
 
   val routing = cors() {
 
-    Route.seal {
-      path("secured") {
-        authenticateBasic(realm = "secure site", myUserPassAuthenticator) { userName =>
-          complete(s"The user is '$userName'")
+//    Route.seal {
+//      path("secured") {
+//        authenticateBasic(realm = "secure site", myUserPassAuthenticator) { userName =>
+//          complete(s"The user is '$userName'")
+//        }
+//      } ~
+      path("tickerSearch" ) {
+        get {
+          parameters('query.as[String], 'limit.as[String], 'exchange.as[String]) { (query, limit, exchange) =>
+            onComplete(Request(Host("fintech"), Url(List("search"), List(("query", query), ("limit", limit), ("exchange", exchange)))).get) {
+              case Success(response) =>
+                val strictEntityFuture = response.entity.toStrict(10 seconds)
+                val listTickerSearchFuture = strictEntityFuture.map(_.data.utf8String.parseJson.convertTo[List[SymbolName]])
+
+                onComplete(listTickerSearchFuture) {
+                  case Success(listTickerSearch) => complete(listTickerSearch)
+                  case Failure(ex) => failWith(ex)
+                }
+
+              case Failure(ex) => failWith(ex)
+            }
+          }
         }
       } ~
-      path("tickerSearch" ) {
-        parameters('query.as[String], 'limit.as[String], 'exchange.as[String]) { (query, limit, exchange) =>
-          onComplete(Request(Host("fintech"), Url(List("search"), List(("query", query), ("limit", limit), ("exchange", exchange)))).get) {
+      path("liststocks") {
+        get {
+          onComplete(Request(Host("fintech"), Url(List("stock", "list"), Nil)).get) {
             case Success(response) =>
               val strictEntityFuture = response.entity.toStrict(10 seconds)
-              val listTickerSearchFuture = strictEntityFuture.map(_.data.utf8String.parseJson.convertTo[List[SymbolName]])
+              val listStocksFuture = strictEntityFuture.map(_.data.utf8String.parseJson.convertTo[List[Stock]])
 
-              onComplete(listTickerSearchFuture) {
-                case Success(listTickerSearch) => complete(listTickerSearch)
+              onComplete(listStocksFuture) {
+                case Success(listStocks) => complete(listStocks)
                 case Failure(ex) => failWith(ex)
               }
 
@@ -52,61 +70,53 @@ object WebServer extends App with Marshallers {
           }
         }
       } ~
-      path("liststocks") {
-        onComplete(Request(Host("fintech"), Url(List("stock", "list"), Nil)).get) {
-          case Success(response) =>
-            val strictEntityFuture = response.entity.toStrict(10 seconds)
-            val listStocksFuture = strictEntityFuture.map(_.data.utf8String.parseJson.convertTo[List[Stock]])
-
-            onComplete(listStocksFuture) {
-              case Success(listStocks) => complete(listStocks)
-              case Failure(ex) => failWith(ex)
-            }
-
-          case Failure(ex) => failWith(ex)
-        }
-      } ~
       path("currencyExchangeRate") {
-        onComplete(Request(Host("fintech"), Url(List("fx"), Nil)).get) {
-          case Success(response) =>
-            val strictEntityFuture = response.entity.toStrict(10 seconds)
-            val listStocksFuture = strictEntityFuture.map(_.data.utf8String.parseJson.convertTo[List[CurrencyExchangeRate]])
+        get {
+          onComplete(Request(Host("fintech"), Url(List("fx"), Nil)).get) {
+            case Success(response) =>
+              val strictEntityFuture = response.entity.toStrict(10 seconds)
+              val listStocksFuture = strictEntityFuture.map(_.data.utf8String.parseJson.convertTo[List[CurrencyExchangeRate]])
 
-            onComplete(listStocksFuture) {
-              case Success(listStocks) => complete(listStocks)
-              case Failure(ex) => failWith(ex)
-            }
-          case Failure(ex) => failWith(ex)
+              onComplete(listStocksFuture) {
+                case Success(listStocks) => complete(listStocks)
+                case Failure(ex) => failWith(ex)
+              }
+            case Failure(ex) => failWith(ex)
+          }
         }
       } ~
       path("sectorsPerformance") {
-        onComplete(Request(Host("fintech"), Url(List("stock", "sectors-performance"), Nil)).get) {
-          case Success(response) =>
-            val strictEntityFuture = response.entity.toStrict(10 seconds)
-            val listStocksFuture = strictEntityFuture.map(_.data.utf8String.parseJson.convertTo[SectorPerformance])
+        get {
+          onComplete(Request(Host("fintech"), Url(List("stock", "sectors-performance"), Nil)).get) {
+            case Success(response) =>
+              val strictEntityFuture = response.entity.toStrict(10 seconds)
+              val listStocksFuture = strictEntityFuture.map(_.data.utf8String.parseJson.convertTo[SectorPerformance])
 
-            onComplete(listStocksFuture) {
-              case Success(listStocks) => complete(listStocks)
-              case Failure(ex) => failWith(ex)
-            }
-          case Failure(ex) => failWith(ex)
+              onComplete(listStocksFuture) {
+                case Success(listStocks) => complete(listStocks)
+                case Failure(ex) => failWith(ex)
+              }
+            case Failure(ex) => failWith(ex)
+          }
         }
       } ~
       path("losers") {
-        onComplete(Request(Host("fintech"), Url(List("losers"), Nil)).get) {
-          case Success(response) =>
-            val strictEntityFuture = response.entity.toStrict(10 seconds)
-            val listStocksFuture = strictEntityFuture.map(_.data.utf8String.parseJson.convertTo[List[Loser]])
+        get {
+          onComplete(Request(Host("fintech"), Url(List("losers"), Nil)).get) {
+            case Success(response) =>
+              val strictEntityFuture = response.entity.toStrict(10 seconds)
+              val listStocksFuture = strictEntityFuture.map(_.data.utf8String.parseJson.convertTo[List[Loser]])
 
-            onComplete(listStocksFuture) {
-              case Success(listStocks) => complete(listStocks)
-              case Failure(ex) => failWith(ex)
-            }
-          case Failure(ex) => failWith(ex)
+              onComplete(listStocksFuture) {
+                case Success(listStocks) => complete(listStocks)
+                case Failure(ex) => failWith(ex)
+              }
+            case Failure(ex) => failWith(ex)
+          }
         }
       }
 
-    }
+//    }
   }
 
 //  val password: Array[Char] = "change me".toCharArray // do not store passwords in code, read them from somewhere safe!
