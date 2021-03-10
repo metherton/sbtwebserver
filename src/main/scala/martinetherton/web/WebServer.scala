@@ -17,6 +17,7 @@ import martinetherton.client.Request
 import martinetherton.domain.{Constants, CurrencyExchangeRate, Executive, Loser, Resource, SectorChange, SectorPerformance, Stock, SymbolName, Url}
 import martinetherton.mappers.Marshallers
 import martinetherton.domain.Constants._
+import martinetherton.web.WebServer.myUserPassAuthenticator
 import spray.json._
 
 import scala.concurrent.duration._
@@ -31,9 +32,18 @@ object WebServer extends App with Marshallers {
   val routing = cors() {
 
     Route.seal {
+      path("login") {
+        extractCredentials { creds =>
+          authenticateBasic(realm = "secure site", myUserPassAuthenticator) { userName =>
+            complete(s"The user is '$userName'")
+          }
+        }
+      } ~
       path("secured") {
-        authenticateBasic(realm = "secure site", myUserPassAuthenticator) { userName =>
-          complete(s"The user is '$userName'")
+        extractCredentials { creds =>
+          authenticateBasic(realm = "secure site", myUserPassAuthenticator) { userName =>
+            complete(s"The user is '$userName'")
+          }
         }
       } ~
       path("tickerSearch" ) {
@@ -85,17 +95,21 @@ object WebServer extends App with Marshallers {
         }
       } ~
       path("losers") {
-        get {
-          onComplete(Request(Host("fintech"), Url(List("losers"), Nil)).get) {
-            case Success(response) =>
-              val strictEntityFuture = response.entity.toStrict(10 seconds)
-              val listStocksFuture = strictEntityFuture.map(_.data.utf8String.parseJson.convertTo[List[Loser]])
+        extractCredentials { creds =>
+          authenticateBasic(realm = "secure site", myUserPassAuthenticator) { userName =>
+            get {
+              onComplete(Request(Host("fintech"), Url(List("losers"), Nil)).get) {
+                case Success(response) =>
+                  val strictEntityFuture = response.entity.toStrict(10 seconds)
+                  val listStocksFuture = strictEntityFuture.map(_.data.utf8String.parseJson.convertTo[List[Loser]])
 
-              onComplete(listStocksFuture) {
-                case Success(listStocks) => complete(listStocks)
+                  onComplete(listStocksFuture) {
+                    case Success(listStocks) => complete(listStocks)
+                    case Failure(ex) => failWith(ex)
+                  }
                 case Failure(ex) => failWith(ex)
               }
-            case Failure(ex) => failWith(ex)
+            }
           }
         }
       } ~
@@ -151,7 +165,7 @@ object WebServer extends App with Marshallers {
 
   def myUserPassAuthenticator(credentials: Credentials): Option[String] =
     credentials match {
-      case p @ Credentials.Provided(id) if p.verify("p4ssw0rd") => Some(id)
+      case p @ Credentials.Provided(id) if p.verify("password") => Some(id)
       case _ => None
     }
 
