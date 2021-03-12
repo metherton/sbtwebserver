@@ -34,14 +34,18 @@ object WebServer extends App with Marshallers {
   val userCredentials: scala.collection.mutable.Map[String, (String, String)] = scala.collection.mutable.Map(("user", ("password", "")), ("user1", ("password1", "")))
   var sessionIds = scala.collection.mutable.Set[String]()
 
+  val token = UUID.randomUUID.toString
+
   val routing = cors() {
 
     Route.seal {
       path("login") {
         extractCredentials { creds =>
           authenticateBasic(realm = "secure site", myUserPassAuthenticator) { sessionId =>
-            respondWithHeaders(RawHeader("SESSION-ID", sessionId), RawHeader("XSRF-TOKEN", UUID.randomUUID.toString)) {
-              complete(s"The user is '$sessionId'")
+            respondWithHeaders(RawHeader("SESSION-ID", sessionId), RawHeader("XSRF-TOKEN", token)) {
+              setCookie(HttpCookie("SESSION-ID", sessionId), HttpCookie("XSRF-TOKEN", token)) {
+                complete(s"The user is '$sessionId'")
+              }
             }
           }
         }
@@ -102,19 +106,21 @@ object WebServer extends App with Marshallers {
         }
       } ~
       path("losers") {
-        extractCredentials { creds =>
-          authenticateBasic(realm = "secure site", myUserPassAuthenticator) { userName =>
-            get {
-              onComplete(Request(Host("fintech"), Url(List("losers"), Nil)).get) {
-                case Success(response) =>
-                  val strictEntityFuture = response.entity.toStrict(10 seconds)
-                  val listStocksFuture = strictEntityFuture.map(_.data.utf8String.parseJson.convertTo[List[Loser]])
+        extractRequest { request =>
+          extractCredentials { creds =>
+            authenticateBasic(realm = "secure site", myUserPassAuthenticator) { userName =>
+              get {
+                onComplete(Request(Host("fintech"), Url(List("losers"), Nil)).get) {
+                  case Success(response) =>
+                    val strictEntityFuture = response.entity.toStrict(10 seconds)
+                    val listStocksFuture = strictEntityFuture.map(_.data.utf8String.parseJson.convertTo[List[Loser]])
 
-                  onComplete(listStocksFuture) {
-                    case Success(listStocks) => complete(listStocks)
-                    case Failure(ex) => failWith(ex)
-                  }
-                case Failure(ex) => failWith(ex)
+                    onComplete(listStocksFuture) {
+                      case Success(listStocks) => complete(listStocks)
+                      case Failure(ex) => failWith(ex)
+                    }
+                  case Failure(ex) => failWith(ex)
+                }
               }
             }
           }
