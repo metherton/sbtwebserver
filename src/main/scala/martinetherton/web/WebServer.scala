@@ -2,9 +2,11 @@ package martinetherton.web
 
 import java.io.InputStream
 import java.security.{KeyStore, SecureRandom}
+import java.util.UUID
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model.HttpRequest
+import akka.http.scaladsl.model.headers.{HttpCookie, HttpOrigin, Origin, RawHeader}
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.server.directives.Credentials
@@ -29,15 +31,18 @@ object WebServer extends App with Marshallers {
   implicit val system = ActorSystem("martinetherton-webserver")
   implicit val executionContext = system.dispatcher
 
-  val userCredentials = Map(("user", "password"), ("user1", "password1"))
+  val userCredentials: scala.collection.mutable.Map[String, (String, String)] = scala.collection.mutable.Map(("user", ("password", "")), ("user1", ("password1", "")))
+  var sessionIds = scala.collection.mutable.Set[String]()
 
   val routing = cors() {
 
     Route.seal {
       path("login") {
         extractCredentials { creds =>
-          authenticateBasic(realm = "secure site", myUserPassAuthenticator) { userName =>
-            complete(s"The user is '$userName'")
+          authenticateBasic(realm = "secure site", myUserPassAuthenticator) { sessionId =>
+            respondWithHeaders(RawHeader("SESSION-ID", sessionId), RawHeader("XSRF-TOKEN", UUID.randomUUID.toString)) {
+              complete(s"The user is '$sessionId'")
+            }
           }
         }
       } ~
@@ -167,7 +172,16 @@ object WebServer extends App with Marshallers {
 
   def myUserPassAuthenticator(credentials: Credentials): Option[String] =
     credentials match {
-      case p @ Credentials.Provided(id) if p.verify(userCredentials.getOrElse(id, "")) => Some(id)
+      case p @ Credentials.Provided(id) if p.verify(userCredentials(id)._1) => {
+        val newSessionId = UUID.randomUUID.toString
+        sessionIds -= userCredentials(id)._2
+        sessionIds += newSessionId
+        val password = userCredentials(id)._1
+        userCredentials -= id
+        userCredentials(id) =  (password, newSessionId)
+
+        Some(newSessionId)
+      }
       case _ => None
     }
 
