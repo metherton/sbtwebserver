@@ -29,6 +29,8 @@ object WebServer extends App with Marshallers {
   implicit val system = ActorSystem("martinetherton-webserver")
   implicit val executionContext = system.dispatcher
 
+  val userCredentials = Map(("user", "password"), ("user1", "password1"))
+
   val routing = cors() {
 
     Route.seal {
@@ -165,7 +167,7 @@ object WebServer extends App with Marshallers {
 
   def myUserPassAuthenticator(credentials: Credentials): Option[String] =
     credentials match {
-      case p @ Credentials.Provided(id) if p.verify("password") => Some(id)
+      case p @ Credentials.Provided(id) if p.verify(userCredentials.getOrElse(id, "")) => Some(id)
       case _ => None
     }
 
