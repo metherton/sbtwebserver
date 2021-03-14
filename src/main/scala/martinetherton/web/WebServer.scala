@@ -5,8 +5,8 @@ import java.security.{KeyStore, SecureRandom}
 import java.util.UUID
 
 import akka.actor.ActorSystem
-import akka.http.scaladsl.model.{HttpHeader, HttpRequest, StatusCodes}
-import akka.http.scaladsl.model.headers.{HttpCookie, HttpCookiePair, HttpOrigin, Origin, RawHeader}
+import akka.http.scaladsl.model.{DateTime, HttpHeader, HttpRequest, StatusCodes}
+import akka.http.scaladsl.model.headers.{HttpCookie, HttpCookiePair, HttpOrigin, Origin, RawHeader, SameSite}
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.{Directive1, Route}
 import akka.http.scaladsl.server.directives.Credentials
@@ -66,7 +66,7 @@ object WebServer extends App with Marshallers {
         extractCredentials { credentials =>
           authenticateBasic(realm = "secure site", myUserPassAuthenticator) { authenticationDetails =>
             respondWithHeaders(RawHeader("x-csrf-token", authenticationDetails._3)) {
-              setCookie(HttpCookie("sessionId", authenticationDetails._1), HttpCookie("username", authenticationDetails._2), HttpCookie("x-csrf-token", authenticationDetails._3)) {
+              setCookie(HttpCookie("sessionId", authenticationDetails._1).withSameSite(SameSite.None).withSecure(true).withExpires(DateTime.MaxValue), HttpCookie("username", authenticationDetails._2), HttpCookie("x-csrf-token", authenticationDetails._3)) {
                 complete(User(authenticationDetails._2, authenticationDetails._1, authenticationDetails._3))
               }
             }
