@@ -66,8 +66,9 @@ object WebServer extends App with Marshallers {
         extractCredentials { credentials =>
           authenticateBasic(realm = "secure site", myUserPassAuthenticator) { authenticationDetails =>
             respondWithHeaders(RawHeader("x-csrf-token", authenticationDetails._3)) {
-              setCookie(HttpCookie("sessionId", authenticationDetails._1).withSameSite(SameSite.None).withSecure(true).withExpires(DateTime.MaxValue), HttpCookie("username", authenticationDetails._2), HttpCookie("x-csrf-token", authenticationDetails._3)) {
+              setCookie(HttpCookie("sessionid", authenticationDetails._1).withSameSite(SameSite.None).withSecure(true), HttpCookie("username", authenticationDetails._2).withSameSite(SameSite.None).withSecure(true), HttpCookie("x-csrf-token", authenticationDetails._3).withSameSite(SameSite.None).withSecure(true)) {
                 complete(User(authenticationDetails._2, authenticationDetails._1, authenticationDetails._3))
+
               }
             }
           }
@@ -131,7 +132,7 @@ object WebServer extends App with Marshallers {
       path("losers") {
         optionalCookie("x-csrf-token") { xsrfCookieToken =>
           optionalCookie("username") { userName =>
-            optionalCookie("sessionId") { sessionId =>
+            optionalCookie("sessionid") { sessionId =>
               optionalHeaderValueByName("x-csrf-token") { xsrfHeaderValue =>
                 if (isAuthenticated(userName, sessionId, xsrfCookieToken, xsrfHeaderValue)) {
                   get {
@@ -198,10 +199,10 @@ object WebServer extends App with Marshallers {
   sslContext.init(keyManagerFactory.getKeyManagers, tmf.getTrustManagers, new SecureRandom)
   val https: HttpsConnectionContext = ConnectionContext.httpsServer(sslContext)
 
-  val bindingFuture = Http().newServerAt("localhost", 8443).enableHttps(https).bind(routing)
-  val bindingFuture1 = Http().newServerAt("localhost", 8080).bind(routing)
-//  val bindingFuture = Http().newServerAt("0.0.0.0", 8443).enableHttps(https).bind(routing)
-//  val bindingFuture1 = Http().newServerAt("0.0.0.0", 8080).bind(routing)
+  //val bindingFuture = Http().newServerAt("localhost", 8443).enableHttps(https).bind(routing)
+  //val bindingFuture1 = Http().newServerAt("localhost", 8080).bind(routing)
+  val bindingFuture = Http().newServerAt("0.0.0.0", 8443).enableHttps(https).bind(routing)
+  val bindingFuture1 = Http().newServerAt("0.0.0.0", 8080).bind(routing)
 
   println(s"Server online at http://localhost:8080/\nPress RETURN to stop...")
   StdIn.readLine() // let it run until user presses return
