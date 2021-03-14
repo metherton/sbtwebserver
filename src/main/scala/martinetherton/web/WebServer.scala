@@ -42,7 +42,7 @@ object WebServer extends App with Marshallers {
 
   def isAuthenticated(userNameCookie: Option[HttpCookiePair], sessionIdCookie: Option[HttpCookiePair], xsrfCookieValueCookie: Option[HttpCookiePair], xsrfHeaderValue: Option[String]): Boolean = (userNameCookie, sessionIdCookie, xsrfCookieValueCookie, xsrfHeaderValue) match {
     case (Some(uName), Some(sId), Some(xc), Some(xh)) => {
-      if (isUserSessionValid(uName.value, sId.value) && xc.value.equals(xh)) true else false
+      if (isUserSessionValid((uName.value.split("="))(0), (sId.value.split("="))(0)) && (xc.value.split("="))(0).equals(xh)) true else false
     }
     case _ => false
   }
