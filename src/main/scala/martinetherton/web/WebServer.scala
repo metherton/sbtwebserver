@@ -146,20 +146,22 @@ object WebServer extends App with Marshallers {
             optionalCookie("username") { userName =>
               optionalCookie("sessionid") { sessionId =>
                 optionalHeaderValueByName("x-csrf-token") { xsrfHeaderValue =>
-                  if (isAuthenticated(userName, sessionId, xsrfCookieToken, xsrfHeaderValue)) {
-                    onComplete(Request(Host("fintech"), Url(List("losers"), Nil)).get) {
-                      case Success(response) =>
-                        val strictEntityFuture = response.entity.toStrict(10 seconds)
-                        val listStocksFuture = strictEntityFuture.map(_.data.utf8String.parseJson.convertTo[List[Loser]])
+                  formField("xCsrfToken".optional) { (xCsrfToken) =>
+                    if (isAuthenticated(userName, sessionId, xsrfCookieToken, xCsrfToken)) {
+                      onComplete(Request(Host("fintech"), Url(List("losers"), Nil)).get) {
+                        case Success(response) =>
+                          val strictEntityFuture = response.entity.toStrict(10 seconds)
+                          val listStocksFuture = strictEntityFuture.map(_.data.utf8String.parseJson.convertTo[List[Loser]])
 
-                        onComplete(listStocksFuture) {
-                          case Success(listStocks) => complete(listStocks)
-                          case Failure(ex) => failWith(ex)
-                        }
-                      case Failure(ex) => failWith(ex)
+                          onComplete(listStocksFuture) {
+                            case Success(listStocks) => complete(listStocks)
+                            case Failure(ex) => failWith(ex)
+                          }
+                        case Failure(ex) => failWith(ex)
+                      }
+                    } else {
+                      complete(StatusCodes.Unauthorized)
                     }
-                  } else {
-                    complete(StatusCodes.Unauthorized)
                   }
                 }
               }
