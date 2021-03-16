@@ -63,27 +63,15 @@ object WebServer extends App with Marshallers {
   val routing = cors() {
 
     Route.seal {
-      path("login") {
-        extractCredentials { credentials =>
-          authenticateBasic(realm = "secure site", myUserPassAuthenticator) { authenticationDetails =>
-            respondWithHeaders(RawHeader("x-csrf-token", authenticationDetails._3)) {
-              setCookie(HttpCookie("sessionid", authenticationDetails._1).withSameSite(SameSite.None).withSecure(true), HttpCookie("username", authenticationDetails._2).withSameSite(SameSite.None).withSecure(true), HttpCookie("x-csrf-token", authenticationDetails._3).withSameSite(SameSite.None).withSecure(true)) {
-                complete(User(authenticationDetails._2, authenticationDetails._1, authenticationDetails._3))
-
-              }
-            }
-          }
-        }
-      } ~
-//      path("secured") {
-//        extractCredentials { creds =>
-//          authenticateBasic(realm = "secure site", myUserPassAuthenticator) { userName =>
-//            complete(s"The user is '$userName'")
-//          }
-//        }
-//      } ~
-      path("tickerSearch" ) {
-        get {
+      get {
+          //      path("secured") {
+          //        extractCredentials { creds =>
+          //          authenticateBasic(realm = "secure site", myUserPassAuthenticator) { userName =>
+          //            complete(s"The user is '$userName'")
+          //          }
+          //        }
+          //      } ~
+        path("tickerSearch" ) {
           parameters('query.as[String], 'limit.as[String], 'exchange.as[String]) { (query, limit, exchange) =>
             onComplete(Request(Host("fintech"), Url(List("search"), List(("query", query), ("limit", limit), ("exchange", exchange)))).get) {
               case Success(response) =>
@@ -98,10 +86,8 @@ object WebServer extends App with Marshallers {
               case Failure(ex) => failWith(ex)
             }
           }
-        }
-      } ~
-      path("currencyExchangeRate") {
-        get {
+        } ~
+        path("currencyExchangeRate") {
           onComplete(Request(Host("fintech"), Url(List("fx"), Nil)).get) {
             case Success(response) =>
               val strictEntityFuture = response.entity.toStrict(10 seconds)
@@ -113,10 +99,8 @@ object WebServer extends App with Marshallers {
               }
             case Failure(ex) => failWith(ex)
           }
-        }
-      } ~
-      path("sectorsPerformance") {
-        get {
+        } ~
+        path("sectorsPerformance") {
           onComplete(Request(Host("fintech"), Url(List("stock", "sectors-performance"), Nil)).get) {
             case Success(response) =>
               val strictEntityFuture = response.entity.toStrict(10 seconds)
@@ -128,39 +112,8 @@ object WebServer extends App with Marshallers {
               }
             case Failure(ex) => failWith(ex)
           }
-        }
-      } ~
-      path("losers") {
-        optionalCookie("x-csrf-token") { xsrfCookieToken =>
-          optionalCookie("username") { userName =>
-            optionalCookie("sessionid") { sessionId =>
-              optionalHeaderValueByName("x-csrf-token") { xsrfHeaderValue =>
-                if (isAuthenticated(userName, sessionId, xsrfCookieToken, xsrfHeaderValue)) {
-                  get {
-                    onComplete(Request(Host("fintech"), Url(List("losers"), Nil)).get) {
-                      case Success(response) =>
-                        val strictEntityFuture = response.entity.toStrict(10 seconds)
-                        val listStocksFuture = strictEntityFuture.map(_.data.utf8String.parseJson.convertTo[List[Loser]])
-
-                        onComplete(listStocksFuture) {
-                          case Success(listStocks) => complete(listStocks)
-                          case Failure(ex) => failWith(ex)
-                        }
-                      case Failure(ex) => failWith(ex)
-                    }
-                  }
-                } else {
-                  complete(StatusCodes.Unauthorized)
-                }
-
-              }
-            }
-          }
-
-        }
-      } ~
-      path("liststocks") {
-        get {
+        } ~
+        path("liststocks") {
           onComplete(Request(Host("fintech"), Url(List("stock", "list"), Nil)).get) {
             case Success(response) =>
               val strictEntityFuture = response.entity.toStrict(10 seconds)
@@ -174,8 +127,46 @@ object WebServer extends App with Marshallers {
             case Failure(ex) => failWith(ex)
           }
         }
-      }
+      } ~
+      post {
+        path("login") {
+          extractCredentials { credentials =>
+            authenticateBasic(realm = "secure site", myUserPassAuthenticator) { authenticationDetails =>
+              respondWithHeaders(RawHeader("x-csrf-token", authenticationDetails._3)) {
+                setCookie(HttpCookie("sessionid", authenticationDetails._1).withSameSite(SameSite.None).withSecure(true), HttpCookie("username", authenticationDetails._2).withSameSite(SameSite.None).withSecure(true), HttpCookie("x-csrf-token", authenticationDetails._3).withSameSite(SameSite.None).withSecure(true)) {
+                  complete(User(authenticationDetails._2, authenticationDetails._1, authenticationDetails._3))
 
+                }
+              }
+            }
+          }
+        } ~
+        path("losers") {
+          optionalCookie("x-csrf-token") { xsrfCookieToken =>
+            optionalCookie("username") { userName =>
+              optionalCookie("sessionid") { sessionId =>
+                optionalHeaderValueByName("x-csrf-token") { xsrfHeaderValue =>
+                  if (isAuthenticated(userName, sessionId, xsrfCookieToken, xsrfHeaderValue)) {
+                    onComplete(Request(Host("fintech"), Url(List("losers"), Nil)).get) {
+                      case Success(response) =>
+                        val strictEntityFuture = response.entity.toStrict(10 seconds)
+                        val listStocksFuture = strictEntityFuture.map(_.data.utf8String.parseJson.convertTo[List[Loser]])
+
+                        onComplete(listStocksFuture) {
+                          case Success(listStocks) => complete(listStocks)
+                          case Failure(ex) => failWith(ex)
+                        }
+                      case Failure(ex) => failWith(ex)
+                    }
+                  } else {
+                    complete(StatusCodes.Unauthorized)
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     }
   }
 
