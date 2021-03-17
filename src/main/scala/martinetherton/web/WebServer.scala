@@ -43,34 +43,14 @@ object WebServer extends App with Marshallers {
   def isAuthenticated(userNameCookie: Option[HttpCookiePair], sessionIdCookie: Option[HttpCookiePair], xsrfCookieValueCookie: Option[HttpCookiePair], xsrfHeaderValue: Option[String]): Boolean = (userNameCookie, sessionIdCookie, xsrfCookieValueCookie, xsrfHeaderValue) match {
     case (Some(uName), Some(sId), Some(xc), Some(xh)) => {
       if (isUserSessionValid((uName.value.split("="))(0), (sId.value.split("="))(0)) && (xc.value.split("="))(0).equals(xh)) true else false
-//      if (isUserSessionValid((uName.value.split("="))(0), (sId.value.split("="))(0)) ) true else false
     }
     case _ => false
   }
-
-//  def isAuthenticated(userName: Option[String], sessionId: Option[String], xsrfCookieValue: Option[String], xsrfHeaderValue: Option[String]): Boolean = (userName, sessionId, xsrfCookieValue, xsrfHeaderValue) match {
-//    case (Some(uName), Some(sId), Some(xc), Some(xh)) => {
-//      if (isUserSessionValid(uName, sId) && xsrfCookieValue.equals(xsrfHeaderValue)) true else false
-//    }
-//    case _ => false
-//  }
-
-//  def isAuthenticated(userName: Option[HttpCookiePair]): Boolean = userName match {
-//    case Some(un) => un.
-//    case _ => false
-//  }
 
   val routing = cors() {
 
     Route.seal {
       get {
-          //      path("secured") {
-          //        extractCredentials { creds =>
-          //          authenticateBasic(realm = "secure site", myUserPassAuthenticator) { userName =>
-          //            complete(s"The user is '$userName'")
-          //          }
-          //        }
-          //      } ~
         path("tickerSearch" ) {
           parameters('query.as[String], 'limit.as[String], 'exchange.as[String]) { (query, limit, exchange) =>
             onComplete(Request(Host("fintech"), Url(List("search"), List(("query", query), ("limit", limit), ("exchange", exchange)))).get) {
@@ -132,18 +112,30 @@ object WebServer extends App with Marshallers {
         path("login") {
           extractCredentials { credentials =>
             authenticateBasic(realm = "secure site", myUserPassAuthenticator) { authenticationDetails =>
-              setCookie(HttpCookie("sessionid", authenticationDetails._1).withSameSite(SameSite.None).withSecure(true), HttpCookie("username", authenticationDetails._2).withSameSite(SameSite.None).withSecure(true), HttpCookie("x-csrf-token", authenticationDetails._3).withSameSite(SameSite.None).withSecure(true)) {
+              setCookie(
+                HttpCookie("sessionid", authenticationDetails._1).withSameSite(SameSite.None).withSecure(true).withExpires(DateTime.MaxValue),
+                HttpCookie("username", authenticationDetails._2).withSameSite(SameSite.None).withSecure(true).withExpires(DateTime.MaxValue),
+                HttpCookie("x-csrf-token", authenticationDetails._3).withSameSite(SameSite.None).withSecure(true).withExpires(DateTime.now.plus(28800000))
+              ) {
                 complete(User(authenticationDetails._2, authenticationDetails._1, authenticationDetails._3))
-
               }
             }
+          }
+        } ~
+        path("logout") {
+          deleteCookie(
+            HttpCookie("sessionid", "").withSameSite(SameSite.None).withSecure(true),
+            HttpCookie ("username", "").withSameSite(SameSite.None).withSecure(true),
+            HttpCookie ("x-csrf-token", "").withSameSite(SameSite.None).withSecure(true)
+          ) {
+            complete("The user has logged out")
           }
         } ~
         path("losers") {
           optionalCookie("x-csrf-token") { xsrfCookieToken =>
             optionalCookie("username") { userName =>
               optionalCookie("sessionid") { sessionId =>
-                formField("xCsrfToken".optional) { (xCsrfToken) =>
+                formField("xCsrfToken".optional) { xCsrfToken =>
                   if (isAuthenticated(userName, sessionId, xsrfCookieToken, xCsrfToken)) {
                     onComplete(Request(Host("fintech"), Url(List("losers"), Nil)).get) {
                       case Success(response) =>
