@@ -132,11 +132,9 @@ object WebServer extends App with Marshallers {
         path("login") {
           extractCredentials { credentials =>
             authenticateBasic(realm = "secure site", myUserPassAuthenticator) { authenticationDetails =>
-              respondWithHeaders(RawHeader("x-csrf-token", authenticationDetails._3)) {
-                setCookie(HttpCookie("sessionid", authenticationDetails._1).withSameSite(SameSite.None).withSecure(true), HttpCookie("username", authenticationDetails._2).withSameSite(SameSite.None).withSecure(true), HttpCookie("x-csrf-token", authenticationDetails._3).withSameSite(SameSite.None).withSecure(true)) {
-                  complete(User(authenticationDetails._2, authenticationDetails._1, authenticationDetails._3))
+              setCookie(HttpCookie("sessionid", authenticationDetails._1).withSameSite(SameSite.None).withSecure(true), HttpCookie("username", authenticationDetails._2).withSameSite(SameSite.None).withSecure(true), HttpCookie("x-csrf-token", authenticationDetails._3).withSameSite(SameSite.None).withSecure(true)) {
+                complete(User(authenticationDetails._2, authenticationDetails._1, authenticationDetails._3))
 
-                }
               }
             }
           }
@@ -145,23 +143,21 @@ object WebServer extends App with Marshallers {
           optionalCookie("x-csrf-token") { xsrfCookieToken =>
             optionalCookie("username") { userName =>
               optionalCookie("sessionid") { sessionId =>
-                optionalHeaderValueByName("x-csrf-token") { xsrfHeaderValue =>
-                  formField("xCsrfToken".optional) { (xCsrfToken) =>
-                    if (isAuthenticated(userName, sessionId, xsrfCookieToken, xCsrfToken)) {
-                      onComplete(Request(Host("fintech"), Url(List("losers"), Nil)).get) {
-                        case Success(response) =>
-                          val strictEntityFuture = response.entity.toStrict(10 seconds)
-                          val listStocksFuture = strictEntityFuture.map(_.data.utf8String.parseJson.convertTo[List[Loser]])
+                formField("xCsrfToken".optional) { (xCsrfToken) =>
+                  if (isAuthenticated(userName, sessionId, xsrfCookieToken, xCsrfToken)) {
+                    onComplete(Request(Host("fintech"), Url(List("losers"), Nil)).get) {
+                      case Success(response) =>
+                        val strictEntityFuture = response.entity.toStrict(10 seconds)
+                        val listStocksFuture = strictEntityFuture.map(_.data.utf8String.parseJson.convertTo[List[Loser]])
 
-                          onComplete(listStocksFuture) {
-                            case Success(listStocks) => complete(listStocks)
-                            case Failure(ex) => failWith(ex)
-                          }
-                        case Failure(ex) => failWith(ex)
-                      }
-                    } else {
-                      complete(StatusCodes.Unauthorized)
+                        onComplete(listStocksFuture) {
+                          case Success(listStocks) => complete(listStocks)
+                          case Failure(ex) => failWith(ex)
+                        }
+                      case Failure(ex) => failWith(ex)
                     }
+                  } else {
+                    complete(StatusCodes.Unauthorized)
                   }
                 }
               }
