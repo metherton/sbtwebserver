@@ -8,7 +8,7 @@ import akka.actor.ActorSystem
 import akka.http.scaladsl.model.{DateTime, HttpHeader, HttpRequest, HttpResponse, StatusCodes}
 import akka.http.scaladsl.model.headers.{HttpCookie, HttpCookiePair, HttpOrigin, Origin, RawHeader, SameSite}
 import akka.http.scaladsl.server.Directives._
-import akka.http.scaladsl.server.{Directive1, ExceptionHandler, Route}
+import akka.http.scaladsl.server.{AuthenticationFailedRejection, AuthorizationFailedRejection, Directive1, MethodRejection, MissingCookieRejection, RejectionHandler, Route, ValidationRejection}
 import akka.http.scaladsl.server.directives.Credentials
 import akka.http.scaladsl.{ConnectionContext, Http, HttpsConnectionContext}
 import akka.stream.ActorMaterializer
@@ -47,14 +47,31 @@ object WebServer extends App with Marshallers {
     case _ => false
   }
 
-  implicit def myExceptionHandler: ExceptionHandler =
-    ExceptionHandler {
-      case _: ArithmeticException =>
-        extractUri { uri =>
-          println(s"Request to $uri could not be handled normally")
-          complete(HttpResponse(StatusCodes.InternalServerError, entity = "Bad numbers, bad result!!!"))
-        }
+  implicit def myRejectionHandler =
+    RejectionHandler.newBuilder()
+      .handle {
+        case AuthenticationFailedRejection(_, _) =>
+          complete(StatusCodes.ImATeapot)
+      }
+      .handle {
+        case MissingCookieRejection(cookieName) =>
+          complete(HttpResponse(StatusCodes.BadRequest, entity = "No cookies, no service!!!"))
+      }
+      .handle {
+        case AuthorizationFailedRejection =>
+          complete(StatusCodes.Forbidden, "You're out of your depth!")
+      }
+      .handle {
+        case ValidationRejection(msg, _) =>
+          complete(StatusCodes.InternalServerError, "That wasn't valid! " + msg)
+      }
+      .handleAll[MethodRejection] { methodRejections =>
+      val names = methodRejections.map(_.supported.name)
+      complete(StatusCodes.MethodNotAllowed, s"Can't do that! Supported: ${names mkString " or "}!")
     }
+      .handleNotFound { complete((StatusCodes.NotFound, "Not here!")) }
+      .result()
+
 
   val routing = cors() {
 
