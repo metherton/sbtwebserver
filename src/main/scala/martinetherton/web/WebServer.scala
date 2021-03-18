@@ -207,10 +207,8 @@ object WebServer extends App with Marshallers {
   sslContext.init(keyManagerFactory.getKeyManagers, tmf.getTrustManagers, new SecureRandom)
   val https: HttpsConnectionContext = ConnectionContext.httpsServer(sslContext)
 
-  //val bindingFuture = Http().newServerAt("localhost", 8443).enableHttps(https).bind(routing)
-  //val bindingFuture1 = Http().newServerAt("localhost", 8080).bind(routing)
   val bindingFuture = Http().newServerAt("0.0.0.0", 8443).enableHttps(https).bind(routing)
-  val bindingFuture1 = Http().newServerAt("0.0.0.0", 8080).bind(routing)
+  //val bindingFuture1 = Http().newServerAt("0.0.0.0", 8080).bind(routing)
 
   println(s"Server online at http://localhost:8080/\nPress RETURN to stop...")
   StdIn.readLine() // let it run until user presses return
@@ -233,21 +231,5 @@ object WebServer extends App with Marshallers {
       }
       case _ => None
     }
-
-//  def myUserPassAuthenticator(credentials: Credentials): (Option[String], Option[String], Option[String])  =
-//    credentials match {
-//      case p @ Credentials.Provided(userName) if p.verify(userCredentials(userName)) => {
-//        val sessionId = UUID.randomUUID.toString
-//        val xsrfToken = UUID.randomUUID.toString
-//        if (userCredentialsStore.contains(userName)) {
-//          userCredentialsStore(userName) = sessionId
-//        } else {
-//          userCredentialsStore += userName -> sessionId
-//        }
-//        (Some(userName), Some(sessionId), Some(xsrfToken))
-//      }
-//      case _ => (None, None, None)
-//    }
-
 
 }
