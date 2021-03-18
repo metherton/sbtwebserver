@@ -5,10 +5,10 @@ import java.security.{KeyStore, SecureRandom}
 import java.util.UUID
 
 import akka.actor.ActorSystem
-import akka.http.scaladsl.model.{DateTime, HttpHeader, HttpRequest, StatusCodes}
+import akka.http.scaladsl.model.{DateTime, HttpHeader, HttpRequest, HttpResponse, StatusCodes}
 import akka.http.scaladsl.model.headers.{HttpCookie, HttpCookiePair, HttpOrigin, Origin, RawHeader, SameSite}
 import akka.http.scaladsl.server.Directives._
-import akka.http.scaladsl.server.{Directive1, Route}
+import akka.http.scaladsl.server.{Directive1, ExceptionHandler, Route}
 import akka.http.scaladsl.server.directives.Credentials
 import akka.http.scaladsl.{ConnectionContext, Http, HttpsConnectionContext}
 import akka.stream.ActorMaterializer
@@ -46,6 +46,15 @@ object WebServer extends App with Marshallers {
     }
     case _ => false
   }
+
+  implicit def myExceptionHandler: ExceptionHandler =
+    ExceptionHandler {
+      case _: ArithmeticException =>
+        extractUri { uri =>
+          println(s"Request to $uri could not be handled normally")
+          complete(HttpResponse(StatusCodes.InternalServerError, entity = "Bad numbers, bad result!!!"))
+        }
+    }
 
   val routing = cors() {
 
