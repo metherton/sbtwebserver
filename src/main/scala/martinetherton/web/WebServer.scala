@@ -31,7 +31,7 @@ object WebServer extends App with Marshallers {
   implicit val system = ActorSystem("martinetherton-webserver")
   implicit val executionContext = system.dispatcher
 
-  val userCredentials = Map("user" -> "password", "user1" -> "password1")
+  val userCredentials = Map("user" -> "password", "user1" -> "password1").withDefaultValue("")
   var userCredentialsStore: scala.collection.mutable.Map[String, String] = scala.collection.mutable.Map[String, String]()
   var sessionIds = scala.collection.mutable.Set[String]()
 
@@ -111,7 +111,7 @@ object WebServer extends App with Marshallers {
       post {
         path("login") {
           extractCredentials { credentials =>
-            authenticateBasic(realm = "secure site", myUserPassAuthenticator) { authenticationDetails =>
+            authenticateBasic(realm = "sharesite", myUserPassAuthenticator) { authenticationDetails =>
               setCookie(
                 HttpCookie("sessionid", authenticationDetails._1).withSameSite(SameSite.None).withSecure(true).withExpires(DateTime.MaxValue),
                 HttpCookie("username", authenticationDetails._2).withSameSite(SameSite.None).withSecure(true).withExpires(DateTime.MaxValue),
