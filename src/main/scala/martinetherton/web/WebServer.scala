@@ -158,11 +158,11 @@ object WebServer extends App with Marshallers {
           }
         } ~
         path("losers") {
-          optionalCookie("x-csrf-token") { xsrfCookieToken =>
+          optionalCookie("x-csrf-token") { xCsrfCookieToken =>
             optionalCookie("username") { userName =>
               optionalCookie("sessionid") { sessionId =>
                 formField("xCsrfToken".optional) { xCsrfToken =>
-                  if (isAuthenticated(userName, sessionId, xsrfCookieToken, xCsrfToken)) {
+                  if (isAuthenticated(userName, sessionId, xCsrfCookieToken, xCsrfToken)) {
                     onComplete(Request(Host("fintech"), Url(List("losers"), Nil)).get) {
                       case Success(response) =>
                         val strictEntityFuture = response.entity.toStrict(10 seconds)
