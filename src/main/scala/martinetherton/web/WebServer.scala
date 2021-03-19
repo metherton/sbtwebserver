@@ -4,7 +4,7 @@ import java.io.InputStream
 import java.security.{KeyStore, SecureRandom}
 import java.util.UUID
 
-import akka.actor.ActorSystem
+import akka.actor.{Actor, ActorLogging, ActorSystem, Props}
 import akka.http.scaladsl.model.{DateTime, HttpHeader, HttpRequest, HttpResponse, StatusCodes}
 import akka.http.scaladsl.model.headers.{HttpCookie, HttpCookiePair, HttpOrigin, Origin, RawHeader, SameSite}
 import akka.http.scaladsl.server.Directives._
@@ -14,17 +14,67 @@ import akka.http.scaladsl.{ConnectionContext, Http, HttpsConnectionContext}
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{Sink, Source}
 import ch.megard.akka.http.cors.scaladsl.CorsDirectives._
+import com.typesafe.akka.extension.quartz.QuartzSchedulerExtension
 import javax.net.ssl.{KeyManagerFactory, SSLContext, TrustManagerFactory}
 import martinetherton.client.Request
 import martinetherton.domain.{Constants, CurrencyExchangeRate, Executive, Loser, Resource, SectorChange, SectorPerformance, Stock, SymbolName, Url, User}
 import martinetherton.mappers.Marshallers
 import martinetherton.domain.Constants._
+import martinetherton.web.GuitarDB.{CreateGuitar, FindAllGuitars}
 import martinetherton.web.WebServer.myUserPassAuthenticator
 import spray.json._
 
 import scala.concurrent.duration._
 import scala.io.StdIn
 import scala.util.{Failure, Success}
+
+case class Guitar(make: String, model: String, quantity: Int = 0)
+
+object GuitarDB {
+  case class CreateGuitar(guitar: Guitar)
+  case class GuitarCreated(id: Int)
+  case class FindGuitar(id: Int)
+  case object FindAllGuitars
+  case class AddQuantity(id: Int, quantity: Int)
+  case class FindGuitarsInStock(inStock: Boolean)
+}
+
+class GuitarDB extends Actor with ActorLogging {
+
+  import GuitarDB._
+
+  var guitars: Map[Int, Guitar] = Map()
+  var currentGuitarId: Int = 0
+
+  override def receive: Receive = {
+    case FindAllGuitars =>
+      log.info("searching for all guitars")
+      sender() ! guitars.values.toList
+    case FindGuitar(id) =>
+      log.info(s"searching guitar by id: $id")
+      sender() ! guitars.get(id)
+    case CreateGuitar(guitar) =>
+      log.info(s"Adding guitar with id $currentGuitarId")
+      guitars = guitars + (currentGuitarId -> guitar)
+      sender() ! GuitarCreated(currentGuitarId)
+      currentGuitarId += 1
+    case AddQuantity(id, quantity) =>
+      log.info(s"Trying to add $quantity items for guitar $id")
+      val guitar: Option[Guitar] = guitars.get(id)
+      val newGuitar: Option[Guitar] = guitar.map {
+        case Guitar(make, model, q) => Guitar(make, model, q + quantity)
+      }
+      newGuitar.foreach(guitar => guitars = guitars + (id -> guitar))
+      sender() ! newGuitar
+    case FindGuitarsInStock(inStock) =>
+      log.info(s"searching for all guitars ${if(inStock) "in"  else "out of" } stock")
+      if (inStock)
+        sender() ! guitars.values.filter(_.quantity > 0)
+      else
+        sender() ! guitars.values.filter(_.quantity == 0)
+  }
+}
+
 
 object WebServer extends App with Marshallers {
 
@@ -206,6 +256,22 @@ object WebServer extends App with Marshallers {
   val sslContext: SSLContext = SSLContext.getInstance("TLS")
   sslContext.init(keyManagerFactory.getKeyManagers, tmf.getTrustManagers, new SecureRandom)
   val https: HttpsConnectionContext = ConnectionContext.httpsServer(sslContext)
+
+  /*
+
+      set up
+   */
+  val guitarDb = system.actorOf(Props[GuitarDB], "LowLevelGuitarDB")
+  val guitarList = List(
+    Guitar("Fender", "Stratocaster"),
+    Guitar("Gibson", "Les Paul"),
+    Guitar("Martin", "LX1")
+  )
+  guitarList.foreach { guitar =>
+    guitarDb ! CreateGuitar(guitar)
+  }
+
+  QuartzSchedulerExtension(system).schedule("Every24Hours", guitarDb, FindAllGuitars)
 
   val bindingFuture = Http().newServerAt("0.0.0.0", 8443).enableHttps(https).bind(routing)
   //val bindingFuture1 = Http().newServerAt("0.0.0.0", 8080).bind(routing)
