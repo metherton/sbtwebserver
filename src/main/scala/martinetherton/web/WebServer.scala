@@ -270,8 +270,8 @@ object WebServer extends App with Marshallers {
 
   //QuartzSchedulerExtension(system).schedule("Every24Hours", guitarDb, FindAllGuitars)
 
-  val bindingFuture = Http().newServerAt("0.0.0.0", 8443).enableHttps(https).bind(routing)
-  //val bindingFuture1 = Http().newServerAt("0.0.0.0", 8080).bind(routing)
+  //val bindingFuture = Http().newServerAt("0.0.0.0", 8443).enableHttps(https).bind(routing)
+  val bindingFuture = Http().newServerAt("0.0.0.0", 8080).bind(routing)
 
   println(s"Server online at http://localhost:8080/\nPress RETURN to stop...")
   StdIn.readLine() // let it run until user presses return
