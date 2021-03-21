@@ -2,9 +2,9 @@ package martinetherton.client
 
 import akka.http.scaladsl.{ConnectionContext, Http}
 import akka.http.scaladsl.model.{HttpRequest, HttpResponse}
-import akka.stream.scaladsl.{Flow, Sink, Source}
+import akka.stream.scaladsl.{Sink, Source}
 import javax.net.ssl.SSLContext
-import martinetherton.domain.Constants.{Host, SslPort}
+import martinetherton.domain.Constants.{SslPort}
 import martinetherton.web.WebServer.system
 
 import scala.concurrent.Future

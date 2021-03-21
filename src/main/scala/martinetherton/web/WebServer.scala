@@ -5,23 +5,20 @@ import java.security.{KeyStore, SecureRandom}
 import java.util.UUID
 
 import akka.actor.{Actor, ActorLogging, ActorSystem, Props}
-import akka.http.scaladsl.model.{DateTime, HttpHeader, HttpRequest, HttpResponse, StatusCodes}
-import akka.http.scaladsl.model.headers.{HttpCookie, HttpCookiePair, HttpOrigin, Origin, RawHeader, SameSite}
+import akka.http.scaladsl.model.{DateTime,HttpResponse, StatusCodes}
+import akka.http.scaladsl.model.headers.{HttpCookie, HttpCookiePair, SameSite}
 import akka.http.scaladsl.server.Directives._
-import akka.http.scaladsl.server.{AuthenticationFailedRejection, AuthorizationFailedRejection, Directive1, MethodRejection, MissingCookieRejection, RejectionHandler, Route, ValidationRejection}
+import akka.http.scaladsl.server.{AuthenticationFailedRejection, AuthorizationFailedRejection, MethodRejection, MissingCookieRejection, RejectionHandler, Route, ValidationRejection}
 import akka.http.scaladsl.server.directives.Credentials
 import akka.http.scaladsl.{ConnectionContext, Http, HttpsConnectionContext}
-import akka.stream.ActorMaterializer
-import akka.stream.scaladsl.{Sink, Source}
 import ch.megard.akka.http.cors.scaladsl.CorsDirectives._
 import com.typesafe.akka.extension.quartz.QuartzSchedulerExtension
 import javax.net.ssl.{KeyManagerFactory, SSLContext, TrustManagerFactory}
 import martinetherton.client.Request
-import martinetherton.domain.{Constants, CurrencyExchangeRate, Executive, Loser, Resource, SectorChange, SectorPerformance, Stock, SymbolName, Url, User}
+import martinetherton.domain.{CurrencyExchangeRate, Loser, SectorPerformance, Stock, SymbolName, Url, User}
 import martinetherton.mappers.Marshallers
 import martinetherton.domain.Constants._
 import martinetherton.web.GuitarDB.{CreateGuitar, FindAllGuitars}
-import martinetherton.web.WebServer.myUserPassAuthenticator
 import spray.json._
 
 import scala.concurrent.duration._
