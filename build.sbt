@@ -24,7 +24,7 @@ val quartz = "com.enragedginger" %% "akka-quartz-scheduler" % "1.8.5-akka-2.6.x"
 
 
 ThisBuild / scalaVersion     := "2.13.1"
-ThisBuild / version          := "0.1.1-SNAPSHOT"
+ThisBuild / version          := "0.1.2-SNAPSHOT"
 ThisBuild / organization     := "com.martinetherton"
 ThisBuild / organizationName := "martinetherton"
 
