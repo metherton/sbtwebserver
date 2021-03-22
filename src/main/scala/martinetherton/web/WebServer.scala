@@ -137,7 +137,7 @@ object WebServer extends App with Marshallers {
               }
             case Failure(ex) => failWith(ex)
           }
-        }
+        } ~
         path("tickerSearch" ) {
           parameters('query.as[String], 'limit.as[String], 'exchange.as[String]) { (query, limit, exchange) =>
             onComplete(Request(Host("fintech"), Url(List("search"), List(("query", query), ("limit", limit), ("exchange", exchange)))).get) {
