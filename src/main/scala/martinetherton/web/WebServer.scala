@@ -5,12 +5,13 @@ import java.security.{KeyStore, SecureRandom}
 import java.util.UUID
 
 import akka.actor.{Actor, ActorLogging, ActorSystem, Props}
-import akka.http.scaladsl.model.{DateTime,HttpResponse, StatusCodes}
+import akka.http.scaladsl.model.{DateTime, HttpRequest, HttpResponse, StatusCodes}
 import akka.http.scaladsl.model.headers.{HttpCookie, HttpCookiePair, SameSite}
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.{AuthenticationFailedRejection, AuthorizationFailedRejection, MethodRejection, MissingCookieRejection, RejectionHandler, Route, ValidationRejection}
 import akka.http.scaladsl.server.directives.Credentials
 import akka.http.scaladsl.{ConnectionContext, Http, HttpsConnectionContext}
+import akka.stream.scaladsl.{Sink, Source}
 import ch.megard.akka.http.cors.scaladsl.CorsDirectives._
 import com.typesafe.akka.extension.quartz.QuartzSchedulerExtension
 import javax.net.ssl.{KeyManagerFactory, SSLContext, TrustManagerFactory}
@@ -124,6 +125,19 @@ object WebServer extends App with Marshallers {
 
     Route.seal {
       get {
+        path("losers") {
+          onComplete(Request(Host("fintech"), Url(List("losers"), Nil)).get) {
+            case Success(response) =>
+              val strictEntityFuture = response.entity.toStrict(10 seconds)
+              val listStocksFuture = strictEntityFuture.map(_.data.utf8String.parseJson.convertTo[List[Loser]])
+
+              onComplete(listStocksFuture) {
+                case Success(listStocks) => complete(listStocks)
+                case Failure(ex) => failWith(ex)
+              }
+            case Failure(ex) => failWith(ex)
+          }
+        }
         path("tickerSearch" ) {
           parameters('query.as[String], 'limit.as[String], 'exchange.as[String]) { (query, limit, exchange) =>
             onComplete(Request(Host("fintech"), Url(List("search"), List(("query", query), ("limit", limit), ("exchange", exchange)))).get) {
@@ -179,6 +193,9 @@ object WebServer extends App with Marshallers {
 
             case Failure(ex) => failWith(ex)
           }
+        } ~
+        pathEndOrSingleSlash {
+          complete(StatusCodes.OK)
         }
       } ~
       post {
