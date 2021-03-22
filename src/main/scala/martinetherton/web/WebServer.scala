@@ -94,30 +94,30 @@ object WebServer extends App with Marshallers {
     case _ => false
   }
 
-//  implicit def myRejectionHandler =
-//    RejectionHandler.newBuilder()
-//      .handle {
-//        case AuthenticationFailedRejection(_, _) =>
-//          complete(StatusCodes.ImATeapot)
-//      }
-//      .handle {
-//        case MissingCookieRejection(cookieName) =>
-//          complete(HttpResponse(StatusCodes.BadRequest, entity = "No cookies, no service!!!"))
-//      }
-//      .handle {
-//        case AuthorizationFailedRejection =>
-//          complete(StatusCodes.Forbidden, "You're out of your depth!")
-//      }
-//      .handle {
-//        case ValidationRejection(msg, _) =>
-//          complete(StatusCodes.InternalServerError, "That wasn't valid! " + msg)
-//      }
-//      .handleAll[MethodRejection] { methodRejections =>
-//      val names = methodRejections.map(_.supported.name)
-//      complete(StatusCodes.MethodNotAllowed, s"Can't do that! Supported: ${names mkString " or "}!")
-//    }
-//      .handleNotFound { complete((StatusCodes.NotFound, "Not here!")) }
-//      .result()
+  implicit def myRejectionHandler =
+    RejectionHandler.newBuilder()
+      .handle {
+        case AuthenticationFailedRejection(_, _) =>
+          complete(StatusCodes.ImATeapot)
+      }
+      .handle {
+        case MissingCookieRejection(cookieName) =>
+          complete(HttpResponse(StatusCodes.BadRequest, entity = "No cookies, no service!!!"))
+      }
+      .handle {
+        case AuthorizationFailedRejection =>
+          complete(StatusCodes.Forbidden, "You're out of your depth!")
+      }
+      .handle {
+        case ValidationRejection(msg, _) =>
+          complete(StatusCodes.InternalServerError, "That wasn't valid! " + msg)
+      }
+      .handleAll[MethodRejection] { methodRejections =>
+      val names = methodRejections.map(_.supported.name)
+      complete(StatusCodes.MethodNotAllowed, s"Can't do that! Supported: ${names mkString " or "}!")
+    }
+      .handleNotFound { complete((StatusCodes.NotFound, "Not here!")) }
+      .result()
 
 
   val routing = cors() {
@@ -268,7 +268,7 @@ object WebServer extends App with Marshallers {
     guitarDb ! CreateGuitar(guitar)
   }
 
-  //QuartzSchedulerExtension(system).schedule("Every24Hours", guitarDb, FindAllGuitars)
+  QuartzSchedulerExtension(system).schedule("Every24Hours", guitarDb, FindAllGuitars)
 
   //val bindingFuture = Http().newServerAt("0.0.0.0", 8443).enableHttps(https).bind(routing)
   val bindingFuture = Http().newServerAt("0.0.0.0", 8080).bind(routing)
