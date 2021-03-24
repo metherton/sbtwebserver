@@ -2,6 +2,7 @@ package martinetherton.web
 
 import java.io.InputStream
 import java.security.{KeyStore, SecureRandom}
+import java.sql.Timestamp
 import java.util.UUID
 
 import akka.actor.{Actor, ActorLogging, ActorSystem, Props}
@@ -11,42 +12,71 @@ import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.{AuthenticationFailedRejection, AuthorizationFailedRejection, MethodRejection, MissingCookieRejection, RejectionHandler, Route, ValidationRejection}
 import akka.http.scaladsl.server.directives.Credentials
 import akka.http.scaladsl.{ConnectionContext, Http, HttpsConnectionContext}
+import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{Sink, Source}
 import ch.megard.akka.http.cors.scaladsl.CorsDirectives._
 import com.typesafe.akka.extension.quartz.QuartzSchedulerExtension
 import javax.net.ssl.{KeyManagerFactory, SSLContext, TrustManagerFactory}
 import martinetherton.client.Request
-import martinetherton.domain.{CurrencyExchangeRate, Loser, SectorPerformance, Stock, SymbolName, Url, User}
+import martinetherton.domain.{CurrencyExchangeRate, Loser, LoserDB, SectorPerformance, Stock, SymbolName, Url, User}
 import martinetherton.mappers.Marshallers
 import martinetherton.domain.Constants._
-import martinetherton.web.GuitarDB.{CreateGuitar, FindAllGuitars}
+import martinetherton.persistence.{LoserRepository, PersonRepository}
+import martinetherton.web.FintechDB.{CreateGuitar, FindAllLosers}
 import spray.json._
 
+import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import scala.io.StdIn
 import scala.util.{Failure, Success}
 
 case class Guitar(make: String, model: String, quantity: Int = 0)
 
-object GuitarDB {
+object FintechDB {
   case class CreateGuitar(guitar: Guitar)
   case class GuitarCreated(id: Int)
   case class FindGuitar(id: Int)
-  case object FindAllGuitars
+  case object FindAllLosers
   case class AddQuantity(id: Int, quantity: Int)
   case class FindGuitarsInStock(inStock: Boolean)
 }
 
-class GuitarDB extends Actor with ActorLogging {
+class FintechDB extends Actor with ActorLogging with Marshallers {
 
-  import GuitarDB._
+  import FintechDB._
+  implicit val system = ActorSystem("Fintech")
+  implicit val materializer = ActorMaterializer()
+  import system.dispatcher
+
+
+  implicit val loserToLoserDB = (loser: Loser) =>
+    LoserDB(None, loser.ticker, loser.changes, loser.price, loser.changesPercentage, loser.companyName, new Timestamp(System.currentTimeMillis()))
 
   var guitars: Map[Int, Guitar] = Map()
   var currentGuitarId: Int = 0
+  val repo = new LoserRepository
 
   override def receive: Receive = {
-    case FindAllGuitars =>
-      log.info("searching for all guitars")
+    case FindAllLosers =>
+      log.info("searching for all losers")
+      val result = Request(Host("fintech"), Url(List("losers"), Nil)).get
+      result.onComplete {
+        case Success(response) => {
+          val strictEntityFuture = response.entity.toStrict(10 seconds)
+          val losersFuture = strictEntityFuture.map(_.data.utf8String.parseJson.convertTo[List[Loser]])
+          losersFuture.onComplete {
+            case Success(losers) => {
+              val insAct = repo.insert(losers.map(loserToLoserDB))
+              insAct.onComplete {
+                case Success(result) => println(s"new person added with id: ${result}")
+                case Failure(ex) => println(s"could not insert: $ex")
+              }
+            }
+            case Failure(ex) => println(s"Really, I have failed with $ex")
+          }
+        }
+        case Failure(ex) => println(s"I have failed with $ex")
+      }
       sender() ! guitars.values.toList
     case FindGuitar(id) =>
       log.info(s"searching guitar by id: $id")
@@ -78,6 +108,8 @@ object WebServer extends App with Marshallers {
 
   implicit val system = ActorSystem("martinetherton-webserver")
   implicit val executionContext = system.dispatcher
+
+  val repo = new LoserRepository
 
   val userCredentials = Map("user" -> "password", "user1" -> "password1").withDefaultValue("")
   var userCredentialsStore: scala.collection.mutable.Map[String, String] = scala.collection.mutable.Map[String, String]()
@@ -126,17 +158,8 @@ object WebServer extends App with Marshallers {
     Route.seal {
       get {
         path("losers") {
-          onComplete(Request(Host("fintech"), Url(List("losers"), Nil)).get) {
-            case Success(response) =>
-              val strictEntityFuture = response.entity.toStrict(10 seconds)
-              val listStocksFuture = strictEntityFuture.map(_.data.utf8String.parseJson.convertTo[List[Loser]])
-
-              onComplete(listStocksFuture) {
-                case Success(listStocks) => complete(listStocks)
-                case Failure(ex) => failWith(ex)
-              }
-            case Failure(ex) => failWith(ex)
-          }
+          val result = repo.getAllLosers()
+          complete(result)
         } ~
         path("tickerSearch" ) {
           parameters('query.as[String], 'limit.as[String], 'exchange.as[String]) { (query, limit, exchange) =>
@@ -275,7 +298,7 @@ object WebServer extends App with Marshallers {
 
       set up
    */
-  val guitarDb = system.actorOf(Props[GuitarDB], "LowLevelGuitarDB")
+  val guitarDb = system.actorOf(Props[FintechDB], "LowLevelGuitarDB")
   val guitarList = List(
     Guitar("Fender", "Stratocaster"),
     Guitar("Gibson", "Les Paul"),
@@ -285,7 +308,7 @@ object WebServer extends App with Marshallers {
     guitarDb ! CreateGuitar(guitar)
   }
 
-  QuartzSchedulerExtension(system).schedule("Every24Hours", guitarDb, FindAllGuitars)
+  QuartzSchedulerExtension(system).schedule("Every24Hours", guitarDb, FindAllLosers)
 
   //val bindingFuture = Http().newServerAt("0.0.0.0", 8443).enableHttps(https).bind(routing)
   val bindingFuture = Http().newServerAt("0.0.0.0", 8080).bind(routing)
