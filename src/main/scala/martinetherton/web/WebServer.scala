@@ -28,14 +28,15 @@ object WebServer extends App with Marshallers {
 
   implicit val system = ActorSystem("martinetherton-webserver")
   implicit val executionContext = system.dispatcher
+  val loserRepo = new LoserRepository
+  val fintechClient = system.actorOf(Props[FintechClient], "FintechClient")
+  QuartzSchedulerExtension(system).schedule("Every24Hours", fintechClient, FindAllLosers)
 
-  val repo = new LoserRepository
-
-  val routing = cors() {
+  val routing: Route = cors() {
     Route.seal {
       get {
         path("losers") {
-          val result = repo.getAllLosers()
+          val result = loserRepo.getAllLosers()
           complete(result)
         } ~
         path("tickerSearch" ) {
@@ -114,16 +115,10 @@ object WebServer extends App with Marshallers {
   sslContext.init(keyManagerFactory.getKeyManagers, tmf.getTrustManagers, new SecureRandom)
   val https: HttpsConnectionContext = ConnectionContext.httpsServer(sslContext)
 
-  /*
 
-      set up
-   */
-  val fintechClient = system.actorOf(Props[FintechClient], "LowLevelGuitarDB")
 
-  QuartzSchedulerExtension(system).schedule("Every24Hours", fintechClient, FindAllLosers)
-
-  //val bindingFuture = Http().newServerAt("0.0.0.0", 8443).enableHttps(https).bind(routing)
-  val bindingFuture = Http().newServerAt("0.0.0.0", 8080).bind(routing)
+  val bindingFuture = Http().newServerAt("0.0.0.0", 8443).enableHttps(https).bind(routing)
+ // val bindingFuture = Http().newServerAt("0.0.0.0", 8080).bind(routing)
 
   println(s"Server online at http://localhost:8080/\nPress RETURN to stop...")
   StdIn.readLine() // let it run until user presses return
