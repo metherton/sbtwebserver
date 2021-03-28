@@ -60,10 +60,11 @@ h2mem1 = {
 
 ons = {
   profile = "slick.jdbc.MySQLProfile$",
-  url = "jdbc:mysql://localhost:6603/etherton?useSSL=false",
+  url = "jdbc:mysql://localhost:3306/etherton?useSSL=false",
   driver = "com.mysql.jdbc.Driver"
   user = "root",
-  password = "my-secret-pw",
+  #password = "dylan1889",
+  password = "password"
   connectionPool = disabled,
   numThreads = 5,
   maxConnections = 5,
