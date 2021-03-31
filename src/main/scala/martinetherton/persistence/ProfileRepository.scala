@@ -6,6 +6,9 @@ import martinetherton.domain.{LoserDB, ProfileDB}
 
 import scala.concurrent.Future
 
+import slick.collection.heterogeneous.{HList, HCons, HNil}
+import slick.collection.heterogeneous.syntax._
+
 class ProfileRepository {
 
   import slick.jdbc.MySQLProfile.api._
@@ -47,10 +50,14 @@ class ProfileRepository {
     def isEtf = column[Boolean]("isEtf")
     def isActivelyTrading = column[Boolean]("isActivelyTrading")
     def insertTime = column[Timestamp]("insertTime")
-    def * = (id.?, symbol, price, beta, volAvg, mktCap, lastDiv, range, changes, companyName,
-      currency, cik, isin, cusip, exchange, exchangeShortName, industry, website, description, ceo,
-      sector, country, fullTimeEmployees, phone, address, city, state, zip, dcfDiff, dcf, image, ipoDate,
-      defaultImage, isEtf, isActivelyTrading, insertTime).mapTo[ProfileDB]
+//    def * = (id.? ,symbol, price, beta, volAvg, mktCap, lastDiv, range, changes, companyName,
+//      currency, cik, isin, cusip, exchange, exchangeShortName, industry, website, description, ceo,
+//      sector, country, fullTimeEmployees, phone, address, city, state, zip, dcfDiff, dcf, image, ipoDate,
+//      defaultImage, isEtf, isActivelyTrading, insertTime).mapTo[ProfileDB]
+    def * = (id.? :: symbol :: price :: beta :: volAvg :: mktCap :: lastDiv :: range :: changes :: companyName ::
+          currency :: cik :: isin :: cusip :: exchange :: exchangeShortName :: industry :: website :: description :: ceo ::
+      sector :: country :: fullTimeEmployees :: phone :: address :: city :: state :: zip :: dcfDiff :: dcf :: image :: ipoDate ::
+      defaultImage :: isEtf :: isActivelyTrading :: insertTime :: HNil).mapTo[ProfileDB]
   }
 
   val profiles = TableQuery[ProfileTable]

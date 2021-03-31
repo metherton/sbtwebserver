@@ -9,7 +9,7 @@ import martinetherton.client.FintechClient.FindProfile
 import martinetherton.domain.Constants.Host
 import martinetherton.domain.{Loser, LoserDB, Profile, ProfileDB, Stock, StockDB, Url}
 import martinetherton.mappers.Marshallers
-import martinetherton.persistence.{LoserRepository, StockRepository}
+import martinetherton.persistence.{LoserRepository, ProfileRepository, StockRepository}
 
 import scala.concurrent.duration._
 import spray.json._
