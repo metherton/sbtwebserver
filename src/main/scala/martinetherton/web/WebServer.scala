@@ -41,6 +41,22 @@ object WebServer extends App with Marshallers {
           val result = loserRepo.getAllLosers()
           complete(result)
         } ~
+        path("profile" / Segment ) { company =>
+          onComplete(Request(Host("fintech"), Url(List("profile", company), Nil)).get) {
+            case Success(response) =>
+              complete(response)
+//              val strictEntityFuture = response.entity.toStrict(10 seconds)
+ //             val listProfileFuture = strictEntityFuture.map(_.data.utf8String.parseJson.convertTo[List[Profile]])
+
+   //           onComplete(listProfileFuture) {
+
+//                case Success(listProfile) => complete(listProfile)
+//                case Failure(ex) => failWith(ex)
+//              }
+
+            case Failure(ex) => failWith(ex)
+          }
+        } ~
         path("tickerSearch" ) {
           parameters('query.as[String], 'limit.as[String], 'exchange.as[String]) { (query, limit, exchange) =>
             onComplete(Request(Host("fintech"), Url(List("search"), List(("query", query), ("limit", limit), ("exchange", exchange)))).get) {
