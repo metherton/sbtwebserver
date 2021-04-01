@@ -11,7 +11,7 @@ import akka.http.scaladsl.{ConnectionContext, Http, HttpsConnectionContext}
 import ch.megard.akka.http.cors.scaladsl.CorsDirectives._
 import com.typesafe.akka.extension.quartz.QuartzSchedulerExtension
 import javax.net.ssl.{KeyManagerFactory, SSLContext, TrustManagerFactory}
-import martinetherton.client.FintechClient.{FindAllLosers, FindAllStocks}
+import martinetherton.client.FintechClient.{FindAllLosers, FindAllStocks, FindProfile}
 import martinetherton.client.{FintechClient, Request}
 import martinetherton.domain.Constants._
 import martinetherton.domain._
@@ -31,8 +31,9 @@ object WebServer extends App with Marshallers {
   val loserRepo = new LoserRepository
   val fintechClient = system.actorOf(Props[FintechClient], "FintechClient")
   val scheduler = QuartzSchedulerExtension(system)
-  scheduler.schedule("Every24Hours", fintechClient, FindAllLosers)
-  scheduler.schedule("Every24Hours2", fintechClient, FindAllStocks)
+//  scheduler.schedule("Every24Hours", fintechClient, FindAllLosers)
+//  scheduler.schedule("Every24Hours2", fintechClient, FindAllStocks)
+  scheduler.schedule("Every24Hours3", fintechClient, FindProfile)
 
   val routing: Route = cors() {
     Route.seal {

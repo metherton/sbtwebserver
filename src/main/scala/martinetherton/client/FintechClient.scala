@@ -19,7 +19,7 @@ import scala.util.{Failure, Success}
 object FintechClient {
   case object FindAllLosers
   case object FindAllStocks
-  case class FindProfile(company: String)
+  case object FindProfile
 }
 
 class FintechClient extends Actor with ActorLogging with Marshallers {
@@ -88,9 +88,9 @@ class FintechClient extends Actor with ActorLogging with Marshallers {
         case Failure(ex) => println(s"I have failed with $ex")
       }
     }
-    case FindProfile(company) => {
+    case FindProfile => {
       log.info("searching for all profile")
-      val result = Request(Host("fintech"), Url(List("losers", company), Nil)).get
+      val result = Request(Host("fintech"), Url(List("profile", "AAPL"), Nil)).get
       result.onComplete {
         case Success(response) => {
           val strictEntityFuture = response.entity.toStrict(10 seconds)

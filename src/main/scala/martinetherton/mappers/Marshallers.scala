@@ -59,7 +59,7 @@ trait Marshallers extends DefaultJsonProtocol  with SprayJsonSupport {
         "city" -> JsString(p.city),
         "state" -> JsString(p.state),
         "zip" -> JsString(p.zip),
-        "dcfDiff" -> JsString(p.dcfDiff),
+        "dcfDiff" -> JsNumber(p.dcfDiff),
         "dcf" -> JsNumber(p.dcf),
         "image" -> JsString(p.image),
         "ipoDate" -> JsString(p.ipoDate),
@@ -85,18 +85,18 @@ trait Marshallers extends DefaultJsonProtocol  with SprayJsonSupport {
           JsString(city),
           JsString(state),
           JsString(zip),
-          JsString(dcfDiff),
+          JsNumber(dcfDiff),
           JsNumber(dcf),
           JsString(image),
           JsString(ipoDate),
           JsBoolean(defaultImage),
           JsBoolean(isEtf),
           JsBoolean(isActivelyTrading))))))))))))))) =>
-          new Profile(symbol, price.toDouble, beta.toDouble, volAvg.toInt, mktCap.toInt, lastDiv.toDouble, range, changes.toDouble,
+          new Profile(symbol, price.toDouble, beta.toDouble, volAvg.toLong, mktCap.toLong, lastDiv.toDouble, range, changes.toDouble,
             companyName, currency, cik, isin, cusip, exchange, exchangeShortName, industry,
             website, description, ceo, sector, country, fullTimeEmployees, phone, address,
-            city, state, zip, dcfDiff, dcf.toDouble, image, ipoDate, defaultImage, isEtf, isActivelyTrading)
-        case _ => throw new DeserializationException("error")
+            city, state, zip, dcfDiff.toDouble, dcf.toDouble, image, ipoDate, defaultImage, isEtf, isActivelyTrading)
+        case ex => throw new DeserializationException(ex.toString())
       }
     }
   }

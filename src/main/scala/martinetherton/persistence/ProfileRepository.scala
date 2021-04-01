@@ -2,12 +2,10 @@ package martinetherton.persistence
 
 import java.sql.Timestamp
 
-import martinetherton.domain.{LoserDB, ProfileDB}
+import martinetherton.domain.ProfileDB
+import slick.collection.heterogeneous.HNil
 
 import scala.concurrent.Future
-
-import slick.collection.heterogeneous.{HList, HCons, HNil}
-import slick.collection.heterogeneous.syntax._
 
 class ProfileRepository {
 
@@ -18,8 +16,8 @@ class ProfileRepository {
     def symbol = column[String]("symbol")
     def price = column[Double]("price")
     def beta = column[Double]("beta")
-    def volAvg = column[Int]("volAvg")
-    def mktCap = column[Int]("mktCap")
+    def volAvg = column[Long]("volAvg")
+    def mktCap = column[Long]("mktCap")
     def lastDiv = column[Double]("lastDiv")
     def range = column[String]("range")
     def changes = column[Double]("changes")
@@ -42,7 +40,7 @@ class ProfileRepository {
     def city = column[String]("city")
     def state = column[String]("state")
     def zip = column[String]("zip")
-    def dcfDiff = column[String]("dcfDiff")
+    def dcfDiff = column[Double]("dcfDiff")
     def dcf = column[Double]("dcf")
     def image = column[String]("image")
     def ipoDate = column[String]("ipoDate")
