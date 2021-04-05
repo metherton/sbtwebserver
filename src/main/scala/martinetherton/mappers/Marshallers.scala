@@ -1,5 +1,6 @@
 package martinetherton.mappers
 
+
 import java.sql.Timestamp
 
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport

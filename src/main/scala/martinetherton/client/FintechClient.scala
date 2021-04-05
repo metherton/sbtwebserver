@@ -121,7 +121,8 @@ class FintechClient extends Actor with ActorLogging with Marshallers {
 //        "0031.HK",
 //        "0032.HK",
 //        "0033.HK")
-      val symbols = List("JOFF")
+      //val symbols = List("VIACP")
+      val symbols = List("AAPL")
       val symbolSource = Source(symbols)
       val resultFlow = Flow[String].map(company => Request(Host("fintech"), Url(List("profile", company), Nil)).get
       .onComplete {
@@ -136,7 +137,7 @@ class FintechClient extends Actor with ActorLogging with Marshallers {
                 case Failure(ex) => println(s"could not insert: $ex")
               }
             }
-            case Failure(ex) => println(s"Really, I have failed with $ex")
+            case Failure(ex) => throw ex
           }
         }
         case Failure(ex) => println(s"I have failed with $ex")
