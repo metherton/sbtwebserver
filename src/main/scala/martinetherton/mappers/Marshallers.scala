@@ -5,9 +5,11 @@ import java.sql.Timestamp
 
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import martinetherton.domain._
+import spray.json
 import spray.json._
+import spray.json.JsNull
 
-trait Marshallers extends DefaultJsonProtocol  with SprayJsonSupport {
+trait Marshallers extends DefaultJsonProtocol  with SprayJsonSupport with NullOptions {
 
   implicit object TimestampFormat extends JsonFormat[Timestamp] {
     def write(obj: Timestamp) = JsNumber(obj.getTime)
@@ -31,6 +33,9 @@ trait Marshallers extends DefaultJsonProtocol  with SprayJsonSupport {
 
 
   implicit object ProfileJsonFormat extends RootJsonFormat[Profile] {
+
+
+
     def write(p: Profile) =
       JsObject(
         "symbol" -> JsString(p.symbol),
@@ -43,34 +48,49 @@ trait Marshallers extends DefaultJsonProtocol  with SprayJsonSupport {
         "changes" -> JsNumber(p.changes),
         "companyName" -> JsString(p.companyName),
         "currency" -> JsString(p.currency),
-        "cik" -> JsString(p.cik),
-        "isin" -> JsString(p.isin),
-        "cusip" -> JsString(p.cusip),
+        "cik" -> p.cik.map(value => JsString(value)).getOrElse(JsNull),
+        "isin" -> p.isin.map(value => JsString(value)).getOrElse(JsNull),
+        "cusip" -> p.cusip.map(value => JsString(value)).getOrElse(JsNull),
         "exchange" -> JsString(p.exchange),
         "exchangeShortName" -> JsString(p.exchangeShortName),
         "industry" -> JsString(p.industry),
         "website" -> JsString(p.website),
-        "description" -> JsString(p.description),
+        "description" -> p.description.map(value => JsString(value)).getOrElse(JsNull),
         "ceo" -> JsString(p.ceo),
         "sector" -> JsString(p.sector),
-        "country" -> JsString(p.country),
-        "fullTimeEmployees" -> JsString(p.fullTimeEmployees),
-        "phone" -> JsString(p.phone),
-        "address" -> JsString(p.address),
-        "city" -> JsString(p.city),
-        "state" -> JsString(p.state),
-        "zip" -> JsString(p.zip),
-        "dcfDiff" -> JsNumber(p.dcfDiff),
+        "country" -> p.country.map(value => JsString(value)).getOrElse(JsNull),
+        "fullTimeEmployees" -> p.fullTimeEmployees.map(value => JsString(value)).getOrElse(JsNull),
+        "phone" -> p.phone.map(value => JsString(value)).getOrElse(JsNull),
+        "address" -> p.address.map(value => JsString(value)).getOrElse(JsNull),
+        "city" -> p.city.map(value => JsString(value)).getOrElse(JsNull),
+        "state" -> p.state.map(value => JsString(value)).getOrElse(JsNull),
+        "zip" -> p.zip.map(value => JsString(value)).getOrElse(JsNull),
+        "dcfDiff" -> p.dcfDiff.map(value => JsNumber(value)).getOrElse(JsNull),
         "dcf" -> JsNumber(p.dcf),
         "image" -> JsString(p.image),
-        "ipoDate" -> JsString(p.ipoDate),
+        "ipoDate" -> p.ipoDate.map(value => JsString(value)).getOrElse(JsNull),
         "defaultImage" -> JsBoolean(p.defaultImage),
         "isEtf" -> JsBoolean(p.isEtf),
         "isActivelyTrading" -> JsBoolean(p.isActivelyTrading)
       )
 
     def read(value: JsValue) = {
-      value.asJsObject.getFields("symbol", "price", "beta", "volAvg", "mktCap", "lastDiv", "range", "changes", "companyName", "currency", "cik", "isin", "cusip", "exchange", "exchangeShortName", "industry", "website", "description", "ceo", "sector", "country", "fullTimeEmployees", "phone", "address", "city", "state", "zip", "dcfDiff", "dcf", "image", "ipoDate", "defaultImage", "isEtf", "isActivelyTrading") match {
+      import spray.json._
+      val values: Seq[JsValue] = value.asJsObject.getFields("symbol", "price", "beta", "volAvg", "mktCap", "lastDiv", "range", "changes", "companyName", "currency", "cik", "isin", "cusip", "exchange", "exchangeShortName", "industry", "website", "description", "ceo", "sector", "country", "fullTimeEmployees", "phone", "address", "city", "state", "zip", "dcfDiff", "dcf", "image", "ipoDate", "defaultImage", "isEtf", "isActivelyTrading")
+
+      var i = 0
+      // zip
+      val newValues = values.map(value => {
+        if (values(i) == JsNull) {
+          i += 1
+          if (Set(11, 12, 13, 18, 21, 22, 23, 24, 25, 26, 27, 31).contains(i)) JsString("")
+          else if (Set(28).contains(i)) JsNumber(0)
+        } else {
+          i += 1
+          value
+        }
+      })
+      newValues match {
         case JsString(symbol) +: (JsNumber(price) +: (JsNumber(beta) +: (JsNumber(volAvg) +: (JsNumber(mktCap) +: (JsNumber(lastDiv) +:
           (JsString(range) +: (JsNumber(changes) +: (JsString(companyName) +: (JsString(currency) +: (JsString(cik) +: (JsString(isin) +:
             (JsString(cusip) +: (JsString(exchange) +: Seq(JsString(exchangeShortName),
@@ -93,10 +113,13 @@ trait Marshallers extends DefaultJsonProtocol  with SprayJsonSupport {
           JsBoolean(defaultImage),
           JsBoolean(isEtf),
           JsBoolean(isActivelyTrading))))))))))))))) =>
-          new Profile(symbol, price.toDouble, beta.toDouble, volAvg.toLong, mktCap.toLong, lastDiv.toDouble, range, changes.toDouble,
-            companyName, currency, cik, isin, cusip, exchange, exchangeShortName, industry,
-            website, description, ceo, sector, country, fullTimeEmployees, phone, address,
-            city, state, zip, dcfDiff.toDouble, dcf.toDouble, image, ipoDate, defaultImage, isEtf, isActivelyTrading)
+          {
+            //val zipO = if (zip == null) "" else zip
+            new Profile(symbol, price.toDouble, beta.toDouble, volAvg.toLong, mktCap.toLong, lastDiv.toDouble, range, changes.toDouble,
+              companyName, currency, Some(cik), Some(isin), Some(cusip), exchange, exchangeShortName, industry,
+              website, Some(description), ceo, sector, Some(country), Some(fullTimeEmployees), Some(phone), Some(address),
+              Some(city), Some(state), Some(zip), Some(dcfDiff.toDouble), dcf.toDouble, image, Some(ipoDate), defaultImage, isEtf, isActivelyTrading)
+          }
         case ex => throw new DeserializationException(ex.toString())
       }
     }

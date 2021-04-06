@@ -47,7 +47,9 @@ class StockRepository {
   def exec[T](action: DBIO[T]): Future[T] =
     db.run(action)
 
-  def getAllStocks() = db.run(stocks.result)
+  def getAllStocks() = {
+    db.run(stocks.result)
+  }
 
   def insert(stocksToInsert: List[StockDB]) = {
     val ins = stocks ++= stocksToInsert

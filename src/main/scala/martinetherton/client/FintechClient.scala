@@ -15,6 +15,7 @@ import martinetherton.persistence.{LoserRepository, ProfileRepository, StockRepo
 import scala.concurrent.duration._
 import spray.json._
 
+import scala.concurrent.Future
 import scala.util.{Failure, Success}
 
 object FintechClient {
@@ -121,33 +122,44 @@ class FintechClient extends Actor with ActorLogging with Marshallers {
 //        "0031.HK",
 //        "0032.HK",
 //        "0033.HK")
-      //val symbols = List("VIACP")
-      val symbols = List("AAPL")
-      val symbolSource = Source(symbols)
-      val resultFlow = Flow[String].map(company => Request(Host("fintech"), Url(List("profile", company), Nil)).get
-      .onComplete {
-        case Success(response) => {
-          val strictEntityFuture = response.entity.toStrict(10 seconds)
-          val profilesFuture = strictEntityFuture.map(_.data.utf8String.parseJson.convertTo[List[Profile]])
-          profilesFuture.onComplete {
-            case Success(profiles) => {
-              val insAct = repoProfile.insert(profiles.map(profileToProfileDB))
-              insAct.onComplete {
-                case Success(result) => println(s"new person added with id: ${result}")
-                case Failure(ex) => println(s"could not insert: $ex")
+      //val symbols = List("VIACP") // nok
+     // val symbols = List("AAPL", "CMCSA", "KMI", "INTC", "MU", "GDX", "GE", "BAC", "EEM", "SPY", XLF", "MSTF") //ok
+      //val symbols = List("0001.HK")
+//      val symbols = repoStock.getAllStocks()
+      val symbols = Future {List("AKS")}
+      symbols.onComplete {
+        case Success(stocks) => {
+          val extractProfile = Flow[Stock].map(stock => stock.symbol)
+          val resultFlow = Flow[String].map(company => Request(Host("fintech"), Url(List("profile", company), Nil)).get
+            .onComplete {
+              case Success(response) => {
+                val strictEntityFuture = response.entity.toStrict(10 seconds)
+                val profilesFuture = strictEntityFuture.map(_.data.utf8String.parseJson.convertTo[List[Profile]])
+                profilesFuture.onComplete {
+                  case Success(profiles) => {
+                    val insAct = repoProfile.insert(profiles.map(profileToProfileDB))
+                    insAct.onComplete {
+                      case Success(result) => println(s"new person added with id: ${result}")
+                      case Failure(ex) => println(s"could not insert: $ex")
+                    }
+                  }
+                  case Failure(ex) => throw ex
+                }
               }
-            }
-            case Failure(ex) => throw ex
+              case Failure(ex) => println(s"I have failed with $ex")
+            })
+          val simpleSink = Sink.foreach[Unit](println)
+     //     val graph = Source(stocks).map(stock => stock.symbol).viaMat(resultFlow)(Keep.right).toMat(simpleSink)(Keep.right) //  simpleSource.viaMat(simpleFlow)((sourceMat, flowMat) => flowMat)
+
+          val graph = Source(stocks).map(stock => stock).viaMat(resultFlow)(Keep.right).toMat(simpleSink)(Keep.right) //  simpleSource.viaMat(simpleFlow)((sourceMat, flowMat) => flowMat)
+          graph.run().onComplete {
+            case Success(_) => "Stream processing finished"
+            case Failure(ex) => println(s"Stream processing finished with: $ex")
           }
         }
-        case Failure(ex) => println(s"I have failed with $ex")
-      })
-      val simpleSink = Sink.foreach[Unit](println)
-      val graph = symbolSource.viaMat(resultFlow)(Keep.right).toMat(simpleSink)(Keep.right) //  simpleSource.viaMat(simpleFlow)((sourceMat, flowMat) => flowMat)
-      graph.run().onComplete {
-        case Success(_) => "Stream processing finished"
-        case Failure(ex) => println(s"Stream processing finished with: $ex")
+        case Failure(ex) => println(ex)
       }
+
     }
 //    case FindProfile => {
 //      log.info("searching for all profile")
