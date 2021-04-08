@@ -125,7 +125,7 @@ trait Marshallers extends DefaultJsonProtocol  with SprayJsonSupport with NullOp
   implicit object ProfileDBJsonFormat extends RootJsonFormat[ProfileDB] {
     def write(p: ProfileDB) =
       JsObject(
-        "id" -> p.symbol.map(value => JsNumber(value)).getOrElse(JsNull),
+        "id" -> JsNull,
         "symbol" -> p.symbol.map(value => JsString(value)).getOrElse(JsNull),
         "price" -> p.price.map(value => JsNumber(value)).getOrElse(JsNull),
         "beta" -> p.beta.map(value => JsNumber(value)).getOrElse(JsNull),
