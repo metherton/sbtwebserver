@@ -92,39 +92,6 @@ class FintechClient extends Actor with ActorLogging with Marshallers {
     }
     case FindProfile => {
       log.info("searching for all profile")
-//      val symbols = List("0001.HK",
-//        "0002.HK",
-//        "0003.HK",
-//        "0004.HK",
-//        "0005.HK",
-//        "0006.HK",
-//        "0007.HK",
-//        "0008.HK",
-//        "0009.HK",
-//        "0010.HK",
-//        "0011.HK",
-//        "0012.HK",
-//        "0014.HK",
-//        "0016.HK",
-//        "0017.HK",
-//        "0018.HK",
-//        "0019.HK",
-//        "0021.HK",
-//        "0022.HK",
-//        "0023.HK",
-//        "0024.HK",
-//        "0025.HK",
-//        "0026.HK",
-//        "0027.HK",
-//        "0028.HK",
-//        "0029.HK",
-//        "0030.HK",
-//        "0031.HK",
-//        "0032.HK",
-//        "0033.HK")
-      //val symbols = List("VIACP") // nok
-     // val symbols = List("AAPL", "CMCSA", "KMI", "INTC", "MU", "GDX", "GE", "BAC", "EEM", "SPY", XLF", "MSTF") //ok
-      //val symbols = List("0001.HK")
       val symbols = repoStock.getAllStocks()
 //      val symbols = Future {List("XOP")}
       symbols.onComplete {
@@ -143,14 +110,15 @@ class FintechClient extends Actor with ActorLogging with Marshallers {
                       case Failure(ex) => println(s"could not insert: $ex")
                     }
                   }
-                  case Failure(ex) => throw ex
+                  case Failure(ex) => println(s"could not insert - failed: $ex") //throw ex
                 }
               }
               case Failure(ex) => println(s"I have failed with $ex")
             })
           val simpleSink = Sink.foreach[Unit](println)
+          import scala.concurrent.duration._
           val bufferedFlow = simpleFlow.buffer(1, overflowStrategy = OverflowStrategy.dropHead)
-          val graph = Source(stocks).async
+          val graph = Source(stocks).throttle(2, 1 second).async
             .map(stock => stock.symbol)
             .viaMat(bufferedFlow)(Keep.right).async
             .toMat(simpleSink)(Keep.right) //  simpleSource.viaMat(simpleFlow)((sourceMat, flowMat) => flowMat)
