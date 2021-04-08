@@ -202,13 +202,13 @@ trait Marshallers extends DefaultJsonProtocol  with SprayJsonSupport with NullOp
             JsString(ipoDate),
             JsBoolean(defaultImage),
             JsBoolean(isEtf),
-            JsBoolean(isActivelyTrading))))))))))))))) =>
+            JsBoolean(isActivelyTrading), JsNull)))))))))))))) =>
         {
           //val zipO = if (zip == null) "" else zip
-          new ProfileDB(Some(id), Some(symbol), Some(price.toDouble), Some(beta.toDouble), Some(volAvg.toLong), Some(mktCap.toLong), Some(lastDiv.toDouble), Some(range), Some(changes.toDouble),
+          new ProfileDB(Some(id.toLong), Some(symbol), Some(price.toDouble), Some(beta.toDouble), Some(volAvg.toLong), Some(mktCap.toLong), Some(lastDiv.toDouble), Some(range), Some(changes.toDouble),
             Some(companyName), Some(currency), Some(cik), Some(isin), Some(cusip), Some(exchange), Some(exchangeShortName), Some(industry),
             Some(website), Some(description), Some(ceo), Some(sector), Some(country), Some(fullTimeEmployees), Some(phone), Some(address),
-            Some(city), Some(state), Some(zip), Some(dcfDiff.toDouble), Some(dcf.toDouble), Some(image), Some(ipoDate), Some(defaultImage), Some(isEtf), Some(isActivelyTrading))
+            Some(city), Some(state), Some(zip), Some(dcfDiff.toDouble), Some(dcf.toDouble), Some(image), Some(ipoDate), Some(defaultImage), Some(isEtf), Some(isActivelyTrading), null)
         }
         case ex => throw new DeserializationException(ex.toString())
       }
