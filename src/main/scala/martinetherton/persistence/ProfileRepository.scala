@@ -52,10 +52,10 @@ class ProfileRepository {
 //      currency, cik, isin, cusip, exchange, exchangeShortName, industry, website, description, ceo,
 //      sector, country, fullTimeEmployees, phone, address, city, state, zip, dcfDiff, dcf, image, ipoDate,
 //      defaultImage, isEtf, isActivelyTrading, insertTime).mapTo[ProfileDB]
-    def * = (id.? :: symbol :: price :: beta :: volAvg :: mktCap :: lastDiv :: range :: changes :: companyName ::
-          currency :: cik.? :: isin.? :: cusip.? :: exchange :: exchangeShortName :: industry :: website :: description.? :: ceo ::
-      sector :: country.? :: fullTimeEmployees.? :: phone.? :: address.? :: city.? :: state.? :: zip.? :: dcfDiff.? :: dcf :: image :: ipoDate.? ::
-      defaultImage :: isEtf :: isActivelyTrading :: insertTime :: HNil).mapTo[ProfileDB]
+    def * = (id.? :: symbol.? :: price.? :: beta.? :: volAvg.? :: mktCap.? :: lastDiv.? :: range.? :: changes.? :: companyName.? ::
+          currency.? :: cik.? :: isin.? :: cusip.? :: exchange.? :: exchangeShortName.? :: industry.? :: website.? :: description.? :: ceo.? ::
+      sector.? :: country.? :: fullTimeEmployees.? :: phone.? :: address.? :: city.? :: state.? :: zip.? :: dcfDiff.? :: dcf.? :: image.? :: ipoDate.? ::
+      defaultImage.? :: isEtf.? :: isActivelyTrading.? :: insertTime :: HNil).mapTo[ProfileDB]
   }
 
   val profiles = TableQuery[ProfileTable]

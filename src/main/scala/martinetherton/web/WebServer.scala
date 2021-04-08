@@ -16,7 +16,7 @@ import martinetherton.client.{FintechClient, Request}
 import martinetherton.domain.Constants._
 import martinetherton.domain._
 import martinetherton.mappers.Marshallers
-import martinetherton.persistence.LoserRepository
+import martinetherton.persistence.{LoserRepository, ProfileRepository}
 import spray.json._
 
 import scala.concurrent.duration._
@@ -29,6 +29,7 @@ object WebServer extends App with Marshallers {
   implicit val system = ActorSystem("martinetherton-webserver")
   implicit val executionContext = system.dispatcher
   val loserRepo = new LoserRepository
+  val profileRepo = new ProfileRepository
   val fintechClient = system.actorOf(Props[FintechClient], "FintechClient")
   val scheduler = QuartzSchedulerExtension(system)
 //  scheduler.schedule("Every24Hours", fintechClient, FindAllLosers)
@@ -40,6 +41,10 @@ object WebServer extends App with Marshallers {
       get {
         path("losers") {
           val result = loserRepo.getAllLosers()
+          complete(result)
+        } ~
+        path("profiles") {
+          val result = profileRepo.getProfiles()
           complete(result)
         } ~
         path("profile" / Segment ) { company =>

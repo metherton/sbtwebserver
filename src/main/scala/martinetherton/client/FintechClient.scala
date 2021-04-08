@@ -4,7 +4,7 @@ import java.sql.Timestamp
 
 import akka.actor.{Actor, ActorLogging, ActorSystem}
 import akka.http.scaladsl.server.Directives.onComplete
-import akka.stream.ActorMaterializer
+import akka.stream.{ActorMaterializer, OverflowStrategy}
 import akka.stream.scaladsl.{Flow, Keep, Sink, Source}
 import martinetherton.client.FintechClient.FindProfile
 import martinetherton.domain.Constants.Host
@@ -125,12 +125,12 @@ class FintechClient extends Actor with ActorLogging with Marshallers {
       //val symbols = List("VIACP") // nok
      // val symbols = List("AAPL", "CMCSA", "KMI", "INTC", "MU", "GDX", "GE", "BAC", "EEM", "SPY", XLF", "MSTF") //ok
       //val symbols = List("0001.HK")
-//      val symbols = repoStock.getAllStocks()
-      val symbols = Future {List("AKS")}
+      val symbols = repoStock.getAllStocks()
+//      val symbols = Future {List("XOP")}
       symbols.onComplete {
         case Success(stocks) => {
           val extractProfile = Flow[Stock].map(stock => stock.symbol)
-          val resultFlow = Flow[String].map(company => Request(Host("fintech"), Url(List("profile", company), Nil)).get
+          val simpleFlow = Flow[String].map(company => Request(Host("fintech"), Url(List("profile", company), Nil)).get
             .onComplete {
               case Success(response) => {
                 val strictEntityFuture = response.entity.toStrict(10 seconds)
@@ -149,9 +149,13 @@ class FintechClient extends Actor with ActorLogging with Marshallers {
               case Failure(ex) => println(s"I have failed with $ex")
             })
           val simpleSink = Sink.foreach[Unit](println)
-     //     val graph = Source(stocks).map(stock => stock.symbol).viaMat(resultFlow)(Keep.right).toMat(simpleSink)(Keep.right) //  simpleSource.viaMat(simpleFlow)((sourceMat, flowMat) => flowMat)
+          val bufferedFlow = simpleFlow.buffer(1, overflowStrategy = OverflowStrategy.dropHead)
+          val graph = Source(stocks).async
+            .map(stock => stock.symbol)
+            .viaMat(bufferedFlow)(Keep.right).async
+            .toMat(simpleSink)(Keep.right) //  simpleSource.viaMat(simpleFlow)((sourceMat, flowMat) => flowMat)
 
-          val graph = Source(stocks).map(stock => stock).viaMat(resultFlow)(Keep.right).toMat(simpleSink)(Keep.right) //  simpleSource.viaMat(simpleFlow)((sourceMat, flowMat) => flowMat)
+//          val graph = Source(stocks).map(stock => stock).viaMat(resultFlow)(Keep.right).toMat(simpleSink)(Keep.right) //  simpleSource.viaMat(simpleFlow)((sourceMat, flowMat) => flowMat)
           graph.run().onComplete {
             case Success(_) => "Stream processing finished"
             case Failure(ex) => println(s"Stream processing finished with: $ex")
