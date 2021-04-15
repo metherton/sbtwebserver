@@ -11,12 +11,14 @@ import akka.http.scaladsl.{ConnectionContext, Http, HttpsConnectionContext}
 import ch.megard.akka.http.cors.scaladsl.CorsDirectives._
 import com.typesafe.akka.extension.quartz.QuartzSchedulerExtension
 import javax.net.ssl.{KeyManagerFactory, SSLContext, TrustManagerFactory}
+import martinetherton.actors.TreeImporter
+import martinetherton.actors.TreeImporter.ImportTree
 import martinetherton.client.FintechClient.{FindAllLosers, FindAllStocks, FindProfile}
 import martinetherton.client.{FintechClient, Request}
 import martinetherton.domain.Constants._
 import martinetherton.domain._
 import martinetherton.mappers.Marshallers
-import martinetherton.persistence.{LoserRepository, ProfileRepository}
+import martinetherton.persistence.{LoserRepository, PersonRepository, ProfileRepository}
 import spray.json._
 
 import scala.concurrent.duration._
@@ -30,15 +32,18 @@ object WebServer extends App with Marshallers {
   implicit val executionContext = system.dispatcher
   val loserRepo = new LoserRepository
   val profileRepo = new ProfileRepository
-  val fintechClient = system.actorOf(Props[FintechClient], "FintechClient")
+  val repo = new PersonRepository
+  val treeReader = system.actorOf(Props[TreeImporter], "TreeImporter")
   val scheduler = QuartzSchedulerExtension(system)
-//  scheduler.schedule("Every24Hours", fintechClient, FindAllLosers)
-//  scheduler.schedule("Every24Hours2", fintechClient, FindAllStocks)
-  scheduler.schedule("Every24Hours3", fintechClient, FindProfile)
+  scheduler.schedule("Every24Hours3", treeReader, ImportTree)
 
   val routing: Route = cors() {
     Route.seal {
       get {
+        path("persons" ) {
+          val result = repo.getPersons("*", "*")
+          complete(result)
+        } ~
         path("losers") {
           val result = loserRepo.getAllLosers()
           complete(result)

@@ -10,6 +10,7 @@ import spray.json.JsNull
 
 trait Marshallers extends DefaultJsonProtocol  with SprayJsonSupport with NullOptions {
 
+
   implicit object TimestampFormat extends JsonFormat[Timestamp] {
     def write(obj: Timestamp) = JsNumber(obj.getTime)
 
@@ -19,6 +20,16 @@ trait Marshallers extends DefaultJsonProtocol  with SprayJsonSupport with NullOp
       case _ => throw new DeserializationException("Date expected")
     }
   }
+
+
+
+
+  implicit val gedcomPersonFormat = jsonFormat10(GedcomPerson)
+
+  implicit val personFormat = jsonFormat13(Person)
+
+
+
 
   implicit val stockFormat = jsonFormat2(Stock)
   implicit val executiveFormat = jsonFormat8(Executive)
@@ -166,20 +177,6 @@ trait Marshallers extends DefaultJsonProtocol  with SprayJsonSupport with NullOp
     def read(value: JsValue) = {
       import spray.json._
       val values: Seq[JsValue] = value.asJsObject.getFields("id", "symbol", "price", "beta", "volAvg", "mktCap", "lastDiv", "range", "changes", "companyName", "currency", "cik", "isin", "cusip", "exchange", "exchangeShortName", "industry", "website", "description", "ceo", "sector", "country", "fullTimeEmployees", "phone", "address", "city", "state", "zip", "dcfDiff", "dcf", "image", "ipoDate", "defaultImage", "isEtf", "isActivelyTrading", "insertTime")
-
-//      var i = 0
-//      // zip
-//      val newValues = values.map(value => {
-//        if (values(i) == JsNull) {
-//          i += 1
-//          if (Set(1, 7, 8, 9, 10, 11, 12, 13, 14, 14, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 30, 31).contains(i)) JsString("")
-//          else if (Set(28, 29).contains(i)) JsNumber(0)
-//          else if (Set(32, 33, 34).contains(i)) JsBoolean(false)
-//        } else {
-//          i += 1
-//          value
-//        }
-//      })
       values match {
         case JsNumber(id) +: JsString(symbol) +: (JsNumber(price) +: (JsNumber(beta) +: (JsNumber(volAvg) +: (JsNumber(mktCap) +: (JsNumber(lastDiv) +:
           (JsString(range) +: (JsNumber(changes) +: (JsString(companyName) +: (JsString(currency) +: (JsString(cik) +: (JsString(isin) +:
