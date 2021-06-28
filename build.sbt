@@ -21,7 +21,7 @@ val mysql = "mysql" % "mysql-connector-java" % "8.0.11"
 val httpTest = "com.typesafe.akka" %% "akka-http-testkit" % "10.2.4" % Test
 val streamTest = "com.typesafe.akka" %% "akka-stream-testkit" % "2.6.5" % Test
 val quartz = "com.enragedginger" %% "akka-quartz-scheduler" % "1.8.5-akka-2.6.x"
-
+val cucumber = "io.cucumber" %% "cucumber-scala" % "6.10.4" % Test
 
 ThisBuild / scalaVersion     := "2.13.1"
 ThisBuild / version          := "0.1.2-SNAPSHOT"
@@ -37,7 +37,7 @@ ThisBuild / organizationName := "martinetherton"
 lazy val root = (project in file("."))
   .settings(
     name := "server",
-    libraryDependencies ++= Seq(scalaTest % Test, jsonMapper, akkaHttp, akkaStream, jsonSerializer, akkaActor, persistence, httpTest, streamTest, cors, slick1, slick2, slick3, mysql, logger, joda, quartz)
+    libraryDependencies ++= Seq(scalaTest % Test, jsonMapper, akkaHttp, akkaStream, jsonSerializer, akkaActor, persistence, httpTest, streamTest, cors, slick1, slick2, slick3, mysql, logger, joda, quartz, cucumber)
   )
 
 

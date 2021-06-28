@@ -7,6 +7,7 @@ import akka.actor.ActorSystem
 import akka.stream.{ActorMaterializer, IOResult}
 import akka.stream.scaladsl.{FileIO, Flow, Framing, Keep, Sink, Source}
 import akka.util.ByteString
+import martinetherton.actors.TreeImporter
 import org.scalatest.flatspec.AnyFlatSpec
 
 import scala.concurrent.{Await, Future}
@@ -63,12 +64,12 @@ class PersonConverterSpec extends UnitSpec {
       factorials.map(num => ByteString(s"$num\n")).runWith(FileIO.toPath(Paths.get("factorials.txt")))
   }
 
-//  it should "read file into Source[String...]" in {
-//    val stringSource: Source[String, Future[IOResult]] = WebServer.stringArrayFrom("etherton-london-1.ged")
-//    val future = stringSource.runWith(Sink.head)
-//    val result = Await.result(future, 5.seconds)
-//    assert(result.startsWith("0 HEAD") == true)
-//  }
+  it should "read file into Source[String...]" in {
+    val stringSource: Source[String, Future[IOResult]] = new TreeImporter().stringArrayFrom("etherton-london-1.ged")
+    val future = stringSource.runWith(Sink.head)
+    val result = Await.result(future, 5.seconds)
+    assert(result.startsWith("0 HEAD") == true)
+  }
 
 //  it should "output read file into String" in {
 //    val stringSource: Source[String, Future[IOResult]] = WebServer.stringArrayFrom("etherton-london-1.ged")
