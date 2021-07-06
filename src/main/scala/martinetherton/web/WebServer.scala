@@ -40,6 +40,9 @@ object WebServer extends App with Marshallers {
   val routing: Route = cors() {
     Route.seal {
       get {
+        path("hello" ) {
+          complete("hello back")
+        } ~
         path("persons" ) {
           val result = repo.getPersons("*", "*")
           complete(result)
