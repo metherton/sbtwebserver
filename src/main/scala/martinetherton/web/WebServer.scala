@@ -4,7 +4,7 @@ import java.io.InputStream
 import java.security.{KeyStore, SecureRandom}
 
 import akka.actor.{ActorSystem, Props}
-import akka.http.scaladsl.model.StatusCodes
+import akka.http.scaladsl.model.{ContentTypes, HttpEntity, StatusCodes}
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.{RequestContext, Route}
 import akka.http.scaladsl.{ConnectionContext, Http, HttpsConnectionContext}
@@ -41,7 +41,18 @@ object WebServer extends App with Marshallers {
     Route.seal {
       get {
         path("hello" ) {
-          complete("hello back")
+          complete {
+            HttpEntity(
+              ContentTypes.`text/html(UTF-8)`,
+              """
+                |<html>
+                |<body>
+                |hello from the high level Akka HTTP
+                |</body>
+                |</html>
+              """.stripMargin
+            )
+          }
         } ~
         path("persons" ) {
           val result = repo.getPersons("*", "*")
