@@ -40,6 +40,20 @@ object WebServer extends App with Marshallers {
   val routing: Route = cors() {
     Route.seal {
       get {
+        path("api" / "hello" ) {
+          complete {
+            HttpEntity(
+              ContentTypes.`text/html(UTF-8)`,
+              """
+                |<html>
+                |<body>
+                |hello from the high level Akka HTTP
+                |</body>
+                |</html>
+              """.stripMargin
+            )
+          }
+        } ~
         path("hello" ) {
           complete {
             HttpEntity(
