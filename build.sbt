@@ -74,7 +74,7 @@ dockerCommands+= Cmd("RUN" , "keytool -import -noprompt -file /opt/docker/config
 //dockerCommands+= Cmd("RUN" , "keytool -import -noprompt -file /opt/docker/config/www.martinetherton.com.crt -storepass changeit -alias metherton -keystore /usr/local/openjdk-8/jre/lib/security/cacerts")
 //dockerCommands+= Cmd("RUN" , "keytool -import -noprompt -file /opt/docker/config/newsecureserver.crt -storepass changeit -alias methertonnew -keystore /usr/local/openjdk-8/jre/lib/security/cacerts")
 dockerCommands+= Cmd("RUN" , "keytool -import -noprompt -file /opt/docker/config/localhost.crt -storepass changeit -alias server -keystore /usr/local/openjdk-8/jre/lib/security/cacerts")
-dockerCommands+= Cmd("RUN" , "cp /opt/docker/config/newsecureserver.crt /usr/local/openjdk-8/jre/lib/security/cacerts")
+// dockerCommands+= Cmd("RUN" , "cp /opt/docker/config/newsecureserver.crt /usr/local/openjdk-8/jre/lib/security/cacerts")
 
 
 // Uncomment the following for publishing to Sonatype.
