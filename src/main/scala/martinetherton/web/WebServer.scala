@@ -169,20 +169,20 @@ object WebServer extends App with Marshallers {
     .onComplete(_ => system.terminate()) // and shutdown when done
 
 
-  def https() = {
-    val password: Array[Char] = "akka-https".toCharArray // do not store passwords in code, read them from somewhere safe!
-    val ks: KeyStore = KeyStore.getInstance("PKCS12")
-    val keystore: InputStream = getClass.getClassLoader.getResourceAsStream("keystore.pkcs12")
-    require(keystore != null, "Keystore required!")
-    ks.load(keystore, password)
-    val keyManagerFactory: KeyManagerFactory = KeyManagerFactory.getInstance("SunX509")
-    keyManagerFactory.init(ks, password)
-    val tmf: TrustManagerFactory = TrustManagerFactory.getInstance("SunX509")
-    tmf.init(ks)
-    val sslContext: SSLContext = SSLContext.getInstance("TLS")
-    sslContext.init(keyManagerFactory.getKeyManagers, tmf.getTrustManagers, new SecureRandom)
-    val https: HttpsConnectionContext = ConnectionContext.httpsServer(sslContext)
-
-    https
-  }
+//  def https() = {
+//    val password: Array[Char] = "akka-https".toCharArray // do not store passwords in code, read them from somewhere safe!
+//    val ks: KeyStore = KeyStore.getInstance("PKCS12")
+//    val keystore: InputStream = getClass.getClassLoader.getResourceAsStream("keystore.pkcs12")
+//    require(keystore != null, "Keystore required!")
+//    ks.load(keystore, password)
+//    val keyManagerFactory: KeyManagerFactory = KeyManagerFactory.getInstance("SunX509")
+//    keyManagerFactory.init(ks, password)
+//    val tmf: TrustManagerFactory = TrustManagerFactory.getInstance("SunX509")
+//    tmf.init(ks)
+//    val sslContext: SSLContext = SSLContext.getInstance("TLS")
+//    sslContext.init(keyManagerFactory.getKeyManagers, tmf.getTrustManagers, new SecureRandom)
+//    val https: HttpsConnectionContext = ConnectionContext.httpsServer(sslContext)
+//
+//    https
+//  }
 }
