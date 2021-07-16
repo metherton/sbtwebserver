@@ -54,6 +54,10 @@ object WebServer extends App with Marshallers {
             )
           }
         } ~
+        path("api" / "persons" ) {
+          val result = repo.getPersons("*", "*")
+          complete(result)
+        } ~
         path("hello" ) {
           complete {
             HttpEntity(
