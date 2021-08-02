@@ -33,13 +33,14 @@ object WebServer extends App with Marshallers {
   val loserRepo = new LoserRepository
   val profileRepo = new ProfileRepository
   val repo = new PersonRepository
-//  val treeReader = system.actorOf(Props[TreeImporter], "TreeImporter")
-//  val scheduler = QuartzSchedulerExtension(system)
-//  scheduler.schedule("Every24Hours3", treeReader, ImportTree)
+  val treeReader = system.actorOf(Props[TreeImporter], "TreeImporter")
+  val scheduler = QuartzSchedulerExtension(system)
+
+  scheduler.schedule("Every24Hours3", treeReader, ImportTree)
 
   val routing: Route = cors() {
     Route.seal {
-      get {
+      post {
         path("api" / "hello" ) {
           complete {
             HttpEntity(
