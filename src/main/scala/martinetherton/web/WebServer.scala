@@ -3,8 +3,10 @@ package martinetherton.web
 import java.io.InputStream
 import java.security.{KeyStore, SecureRandom}
 
+import scala.language.postfixOps
+
 import akka.actor.{ActorSystem, Props}
-import akka.http.scaladsl.model.{ContentTypes, HttpEntity, StatusCodes}
+import akka.http.scaladsl.model.{ContentTypes, HttpEntity, HttpRequest, StatusCodes}
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.{RequestContext, Route}
 import akka.http.scaladsl.{ConnectionContext, Http, HttpsConnectionContext}
@@ -21,12 +23,12 @@ import martinetherton.mappers.Marshallers
 import martinetherton.persistence.{LoserRepository, PersonRepository, ProfileRepository}
 import spray.json._
 
+
 import scala.concurrent.duration._
 import scala.io.StdIn
 import scala.util.{Failure, Success}
 
-
-object WebServer extends App with Marshallers {
+object WebServer extends App with Marshallers  {
 
   implicit val system = ActorSystem("martinetherton-webserver")
   implicit val executionContext = system.dispatcher
@@ -36,7 +38,7 @@ object WebServer extends App with Marshallers {
   val treeReader = system.actorOf(Props[TreeImporter], "TreeImporter")
   val scheduler = QuartzSchedulerExtension(system)
 
-  scheduler.schedule("Every24Hours3", treeReader, ImportTree)
+//  scheduler.schedule("Every24Hours3", treeReader, ImportTree)
 
   val routing: Route = cors() {
     Route.seal {
@@ -56,8 +58,20 @@ object WebServer extends App with Marshallers {
           }
         } ~
         path("api" / "persons" ) {
-          val result = repo.getPersons("*", "*")
-          complete(result)
+          (extractRequest & extractLog) { (request, log) =>
+            //print(s"$request.entity")
+            val entity = request.entity
+            val strictEntityFuture = entity.toStrict(2 seconds)
+            val personParamsFuture = strictEntityFuture.map(_.data.utf8String.parseJson.convertTo[PersonParams])
+            onComplete(personParamsFuture) {
+              case Success(person) =>
+                log.info(s"Got person: $person")
+                val result = repo.getPersons(person.firstName, person.surname)
+                complete(result)
+              case Failure(ex) =>
+                failWith(ex)
+            }
+          }
         } ~
         path("hello" ) {
           complete {

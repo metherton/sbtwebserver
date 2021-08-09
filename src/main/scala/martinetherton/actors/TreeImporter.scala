@@ -1,7 +1,7 @@
 package martinetherton.actors
 
 import java.nio.file.{Path, Paths}
-import java.sql.Timestamp
+import java.sql.{Date, Timestamp}
 import java.time.LocalDateTime
 
 import akka.actor.{Actor, ActorLogging, ActorSystem}
@@ -15,7 +15,7 @@ import martinetherton.persistence.PersonRepository
 import spray.json.{DeserializationException, JsNumber, JsValue, JsonFormat}
 
 import scala.concurrent.Future
-import scala.util.Success
+import scala.util.{Failure, Success}
 
 
 object TreeImporter {
@@ -43,6 +43,46 @@ class TreeImporter extends Actor with ActorLogging with Marshallers {
       .filter(person => (person.firstName.getOrElse("").toLowerCase.contains(firstName.toLowerCase) || firstName.equals("*")) &&
         (person.surname.getOrElse("").toLowerCase.contains(surname.toLowerCase) || surname.equals("*"))))
   }
+
+  def isMonth(name: String): Boolean = {
+    if (name.toLowerCase().equals("july") || name.toLowerCase().equals("dec.") || name.toLowerCase().equals("june")) true else false
+  }
+
+  def convertDate(dateString: String): String = {
+    val monMap: Map[String, Int] = Map("jan" -> 1, "feb" -> 2, "mar" -> 3, "apr" -> 4, "may" -> 5, "jun" -> 6, "jul" -> 7,
+    "aug" -> 8, "sep" -> 9, "oct" -> 10, "nov" -> 11, "dec" -> 12, "january" -> 1, "february" -> 2, "march" -> 3, "april" -> 4, "may" -> 5, "june" -> 6, "july" -> 7,
+      "august" -> 8, "september" -> 9, "october" -> 10, "november" -> 11, "december" -> 12
+    )
+    var day: Int = 1
+    var month: Int = 1
+    var y: Int = 1970
+    var newDateString = dateString.replace("Abt.", "").trim
+    val dateParts: List[String] = newDateString.split(" ").toList
+    val datePartsSlash: List[String] = newDateString.split("/").toList
+    if (datePartsSlash.length > 2) {
+      month = datePartsSlash(0).toInt
+      day = datePartsSlash(1).toInt
+      y = datePartsSlash(2).toInt
+    } else if (dateParts.length > 0) {
+      println(newDateString)
+      val newYear: List[String] = dateParts.filter(part => part.trim.length == 4).filter((yr) => !isMonth(yr))
+      if (newYear.length > 0) {
+        y = newYear.head.toInt
+      }
+      val mon = dateParts.filter(part => part.trim.length == 3 && part.toLowerCase != "abt" && !part.contains(","))
+      if (mon.length == 1) {
+        month = monMap(mon.head.toLowerCase)
+      }
+      val days = dateParts.filter(part => part.trim.length == 1 || part.trim.length == 2)
+      if (days.length == 1) {
+        day = days.head.replace(",","").toInt
+      }
+    }
+    println(s"${y.toString}-${month.toString}-${day.toString}")
+    s"${y.toString}-${month.toString}-${day.toString}"
+  }
+
+
 
   def personsFrom(personStringArrays: Source[List[List[String]], Future[IOResult]]): Source[List[GedcomPerson], Future[IOResult]] = {
     personStringArrays.map(a => a.map( arr1 => {
@@ -89,7 +129,7 @@ class TreeImporter extends Actor with ActorLogging with Marshallers {
         val idTemp = arr.find(s => s.startsWith("0 @P")).getOrElse("0 @P").toString.replace("0 @P", "").replace("@ INDI ", "")
         val id = if (idTemp.equals("")) "0" else idTemp
 
-        GedcomPerson(Some(id), Some(firstName), Some(surname), Some(dateOfBirth), Some(placeOfBirth), Some(dateOfDeath), Some(placeOfDeath), Some(sex), Some(childRelations), Some(parentRelation))
+        GedcomPerson(Some(id), Some(firstName), Some(surname), Some(convertDate(dateOfBirth)), Some(placeOfBirth), Some(dateOfDeath), Some(placeOfDeath), Some(sex), Some(childRelations), Some(parentRelation))
       } else {
         GedcomPerson(Some("UNKNOWN"), Some("UNKNOWN"), Some("UNKNOWN"), Some("UNKNOWN"), Some("UNKNOWN"), Some("UNKNOWN"), Some("UNKNOWN"), Some("UNKNOWN"), Some(List("UNKNOWN")), Some("UNKNOWN"))
       }
@@ -110,8 +150,15 @@ class TreeImporter extends Actor with ActorLogging with Marshallers {
     })
   }
 
+  def convertLocalDateTime(dob: String): LocalDateTime = {
+    val dateParts: List[String] = dob.split("-").toList
+    LocalDateTime.of(dateParts(0).toInt, dateParts(1).toInt, dateParts(2).toInt, 23, 59)
+  }
+
   def convertGedcomToPerson(gedcomPerson: GedcomPerson):Person = {
-    Person(gedcomPerson.firstName.getOrElse("").trim(), gedcomPerson.surname.getOrElse(""), Timestamp.valueOf(LocalDateTime.now()), gedcomPerson.place.getOrElse(""), gedcomPerson.place.getOrElse(""), gedcomPerson.place.getOrElse(""), None, gedcomPerson.id.getOrElse("1").toLong, gedcomPerson.parentRelation.getOrElse("1").toLong, 1L, gedcomPerson.childRelation.getOrElse(List()).mkString(","), gedcomPerson.parentRelation.getOrElse(""), gedcomPerson.sex.getOrElse("M"))
+//    Person(gedcomPerson.firstName.getOrElse("").trim(), gedcomPerson.surname.getOrElse(""), Timestamp.valueOf(LocalDateTime.now()), gedcomPerson.place.getOrElse(""), gedcomPerson.place.getOrElse(""), gedcomPerson.place.getOrElse(""), None, gedcomPerson.id.getOrElse("1").toLong, gedcomPerson.parentRelation.getOrElse("1").toLong, 1L, gedcomPerson.childRelation.getOrElse(List()).mkString(","), gedcomPerson.parentRelation.getOrElse(""), gedcomPerson.sex.getOrElse("M"))
+    Person(gedcomPerson.firstName.getOrElse("").trim(), gedcomPerson.surname.getOrElse(""), Timestamp.valueOf(convertLocalDateTime(gedcomPerson.dateOfBirth.getOrElse("1970-1-1"))), gedcomPerson.place.getOrElse(""), gedcomPerson.place.getOrElse(""), gedcomPerson.place.getOrElse(""), None, gedcomPerson.id.getOrElse("1").toLong, gedcomPerson.parentRelation.getOrElse("1").toLong, 1L, gedcomPerson.childRelation.getOrElse(List()).mkString(","), gedcomPerson.parentRelation.getOrElse(""), gedcomPerson.sex.getOrElse("M"))
+
   }
 
   def getRequiredLines(stringSource: Source[String, Future[IOResult]]): Source[String, Future[IOResult]] = {
@@ -132,7 +179,7 @@ class TreeImporter extends Actor with ActorLogging with Marshallers {
   override def receive: Receive = {
     case ImportTree => {
       log.info("importing tree")
-      val originalPersons: Source[List[GedcomPerson], Future[IOResult]] = filteredPersonList(personsFrom(listOfPersonStringsFrom(getRequiredLines(stringArrayFrom(gedcomFileMap("usa1"))))), "*", "*")
+      val originalPersons: Source[List[GedcomPerson], Future[IOResult]] = filteredPersonList(personsFrom(listOfPersonStringsFrom(getRequiredLines(stringArrayFrom(gedcomFileMap("london1"))))), "*", "*")
       val doneOriginal = originalPersons.via(Flow[List[GedcomPerson]].map(p => p.map(c => convertGedcomToPerson(c)))).toMat(Sink.head)(Keep.right).run()
       val dummyPerson = Person("", "", Timestamp.valueOf(LocalDateTime.now()),"", "","", None, 0, 0, 0, "", "", "M")
       doneOriginal.onComplete {
@@ -145,10 +192,11 @@ class TreeImporter extends Actor with ActorLogging with Marshallers {
             newP
           }
 
-          val sourcePersons: Source[List[GedcomPerson], Future[IOResult]] = filteredPersonList(personsFrom(listOfPersonStringsFrom(getRequiredLines(stringArrayFrom(gedcomFileMap("usa1"))))), "*", "*")
+          val sourcePersons: Source[List[GedcomPerson], Future[IOResult]] = filteredPersonList(personsFrom(listOfPersonStringsFrom(getRequiredLines(stringArrayFrom(gedcomFileMap("london1"))))), "*", "*")
           val done = sourcePersons.via(Flow[List[GedcomPerson]].map(p => p.map(c => convertGedcomToPerson(c)).map(ps => addParentIds(ps)).map(per => savePerson(per)))).runForeach(person => println(person))
           done.onComplete(_ => system.terminate())
         }
+        case Failure(exception) => println(exception)
       }
 
       def savePerson(p: Person): Person = {
