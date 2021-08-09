@@ -88,8 +88,20 @@ object WebServer extends App with Marshallers  {
           }
         } ~
         path("persons" ) {
-          val result = repo.getPersons("*", "*")
-          complete(result)
+          (extractRequest & extractLog) { (request, log) =>
+            //print(s"$request.entity")
+            val entity = request.entity
+            val strictEntityFuture = entity.toStrict(2 seconds)
+            val personParamsFuture = strictEntityFuture.map(_.data.utf8String.parseJson.convertTo[PersonParams])
+            onComplete(personParamsFuture) {
+              case Success(person) =>
+                log.info(s"Got person: $person")
+                val result = repo.getPersons(person.firstName, person.surname)
+                complete(result)
+              case Failure(ex) =>
+                failWith(ex)
+            }
+          }
         } ~
         path("losers") {
           val result = loserRepo.getAllLosers()
