@@ -179,7 +179,7 @@ class TreeImporter extends Actor with ActorLogging with Marshallers {
   override def receive: Receive = {
     case ImportTree => {
       log.info("importing tree")
-      val originalPersons: Source[List[GedcomPerson], Future[IOResult]] = filteredPersonList(personsFrom(listOfPersonStringsFrom(getRequiredLines(stringArrayFrom(gedcomFileMap("london1"))))), "*", "*")
+      val originalPersons: Source[List[GedcomPerson], Future[IOResult]] = filteredPersonList(personsFrom(listOfPersonStringsFrom(getRequiredLines(stringArrayFrom(gedcomFileMap("usa1"))))), "*", "*")
       val doneOriginal = originalPersons.via(Flow[List[GedcomPerson]].map(p => p.map(c => convertGedcomToPerson(c)))).toMat(Sink.head)(Keep.right).run()
       val dummyPerson = Person("", "", Timestamp.valueOf(LocalDateTime.now()),"", "","", None, 0, 0, 0, "", "", "M")
       doneOriginal.onComplete {
@@ -192,7 +192,7 @@ class TreeImporter extends Actor with ActorLogging with Marshallers {
             newP
           }
 
-          val sourcePersons: Source[List[GedcomPerson], Future[IOResult]] = filteredPersonList(personsFrom(listOfPersonStringsFrom(getRequiredLines(stringArrayFrom(gedcomFileMap("london1"))))), "*", "*")
+          val sourcePersons: Source[List[GedcomPerson], Future[IOResult]] = filteredPersonList(personsFrom(listOfPersonStringsFrom(getRequiredLines(stringArrayFrom(gedcomFileMap("usa1"))))), "*", "*")
           val done = sourcePersons.via(Flow[List[GedcomPerson]].map(p => p.map(c => convertGedcomToPerson(c)).map(ps => addParentIds(ps)).map(per => savePerson(per)))).runForeach(person => println(person))
           done.onComplete(_ => system.terminate())
         }

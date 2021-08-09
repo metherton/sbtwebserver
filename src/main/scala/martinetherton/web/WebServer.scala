@@ -36,7 +36,7 @@ object WebServer extends App with Marshallers  {
   val profileRepo = new ProfileRepository
   val repo = new PersonRepository
   val treeReader = system.actorOf(Props[TreeImporter], "TreeImporter")
-  val scheduler = QuartzSchedulerExtension(system)
+ // val scheduler = QuartzSchedulerExtension(system)
 
 //  scheduler.schedule("Every24Hours3", treeReader, ImportTree)
 
