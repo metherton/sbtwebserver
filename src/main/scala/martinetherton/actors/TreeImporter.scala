@@ -60,8 +60,13 @@ class TreeImporter extends Actor with ActorLogging with Marshallers {
     val dateParts: List[String] = newDateString.split(" ").toList
     val datePartsSlash: List[String] = newDateString.split("/").toList
     if (datePartsSlash.length > 2) {
-      month = datePartsSlash(0).toInt
-      day = datePartsSlash(1).toInt
+      if (datePartsSlash(0).toInt > 12) {
+        month = datePartsSlash(1).toInt
+        day = datePartsSlash(0).toInt
+      } else {
+        month = datePartsSlash(0).toInt
+        day = datePartsSlash(1).toInt
+      }
       y = datePartsSlash(2).toInt
     } else if (dateParts.length > 0) {
       println(newDateString)

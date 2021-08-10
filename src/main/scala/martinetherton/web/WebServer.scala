@@ -66,7 +66,7 @@ object WebServer extends App with Marshallers  {
             onComplete(personParamsFuture) {
               case Success(person) =>
                 log.info(s"Got person: $person")
-                val result = repo.getPersons(person.firstName, person.surname)
+                val result = repo.getPersons(person.firstName.trim, person.surname.trim)
                 complete(result)
               case Failure(ex) =>
                 failWith(ex)
@@ -96,7 +96,7 @@ object WebServer extends App with Marshallers  {
             onComplete(personParamsFuture) {
               case Success(person) =>
                 log.info(s"Got person: $person")
-                val result = repo.getPersons(person.firstName, person.surname)
+                val result = repo.getPersons(person.firstName.trim, person.surname.trim)
                 complete(result)
               case Failure(ex) =>
                 failWith(ex)
