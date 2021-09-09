@@ -30,6 +30,7 @@ class TreeImporter extends Actor with ActorLogging with Marshallers {
   import system.dispatcher
 
   val repo = new PersonRepository
+  val gedcomFile = "usa1"
 
   val gedcomFileMap =
     Map("london1" -> "etherton-london-1.ged",
@@ -134,9 +135,9 @@ class TreeImporter extends Actor with ActorLogging with Marshallers {
         val idTemp = arr.find(s => s.startsWith("0 @P")).getOrElse("0 @P").toString.replace("0 @P", "").replace("@ INDI ", "")
         val id = if (idTemp.equals("")) "0" else idTemp
 
-        GedcomPerson(Some(id), Some(firstName), Some(surname), Some(convertDate(dateOfBirth)), Some(placeOfBirth), Some(dateOfDeath), Some(placeOfDeath), Some(sex), Some(childRelations), Some(parentRelation))
+        GedcomPerson(Some(id), Some(firstName), Some(surname), Some(convertDate(dateOfBirth)), Some(placeOfBirth), Some(dateOfDeath), Some(placeOfDeath), Some(sex), Some(childRelations), Some(parentRelation), Some(gedcomFile))
       } else {
-        GedcomPerson(Some("UNKNOWN"), Some("UNKNOWN"), Some("UNKNOWN"), Some("UNKNOWN"), Some("UNKNOWN"), Some("UNKNOWN"), Some("UNKNOWN"), Some("UNKNOWN"), Some(List("UNKNOWN")), Some("UNKNOWN"))
+        GedcomPerson(Some("UNKNOWN"), Some("UNKNOWN"), Some("UNKNOWN"), Some("UNKNOWN"), Some("UNKNOWN"), Some("UNKNOWN"), Some("UNKNOWN"), Some("UNKNOWN"), Some(List("UNKNOWN")), Some("UNKNOWN"), Some("UNKNOWN"))
       }
 
     }))
@@ -162,7 +163,7 @@ class TreeImporter extends Actor with ActorLogging with Marshallers {
 
   def convertGedcomToPerson(gedcomPerson: GedcomPerson):Person = {
 //    Person(gedcomPerson.firstName.getOrElse("").trim(), gedcomPerson.surname.getOrElse(""), Timestamp.valueOf(LocalDateTime.now()), gedcomPerson.place.getOrElse(""), gedcomPerson.place.getOrElse(""), gedcomPerson.place.getOrElse(""), None, gedcomPerson.id.getOrElse("1").toLong, gedcomPerson.parentRelation.getOrElse("1").toLong, 1L, gedcomPerson.childRelation.getOrElse(List()).mkString(","), gedcomPerson.parentRelation.getOrElse(""), gedcomPerson.sex.getOrElse("M"))
-    Person(gedcomPerson.firstName.getOrElse("").trim(), gedcomPerson.surname.getOrElse(""), Timestamp.valueOf(convertLocalDateTime(gedcomPerson.dateOfBirth.getOrElse("1970-1-1"))), gedcomPerson.place.getOrElse(""), gedcomPerson.place.getOrElse(""), gedcomPerson.place.getOrElse(""), None, gedcomPerson.id.getOrElse("1").toLong, gedcomPerson.parentRelation.getOrElse("1").toLong, 1L, gedcomPerson.childRelation.getOrElse(List()).mkString(","), gedcomPerson.parentRelation.getOrElse(""), gedcomPerson.sex.getOrElse("M"))
+    Person(gedcomPerson.firstName.getOrElse("").trim(), gedcomPerson.surname.getOrElse(""), Timestamp.valueOf(convertLocalDateTime(gedcomPerson.dateOfBirth.getOrElse("1970-1-1"))), gedcomPerson.place.getOrElse(""), gedcomPerson.place.getOrElse(""), gedcomPerson.place.getOrElse(""), None, gedcomPerson.id.getOrElse("1").toLong, gedcomPerson.parentRelation.getOrElse("1").toLong, 1L, gedcomPerson.childRelation.getOrElse(List()).mkString(","), gedcomPerson.parentRelation.getOrElse(""), gedcomPerson.sex.getOrElse("M"), gedcomPerson.tree.getOrElse("").trim())
 
   }
 
@@ -184,9 +185,9 @@ class TreeImporter extends Actor with ActorLogging with Marshallers {
   override def receive: Receive = {
     case ImportTree => {
       log.info("importing tree")
-      val originalPersons: Source[List[GedcomPerson], Future[IOResult]] = filteredPersonList(personsFrom(listOfPersonStringsFrom(getRequiredLines(stringArrayFrom(gedcomFileMap("usa1"))))), "*", "*")
+      val originalPersons: Source[List[GedcomPerson], Future[IOResult]] = filteredPersonList(personsFrom(listOfPersonStringsFrom(getRequiredLines(stringArrayFrom(gedcomFileMap(gedcomFile))))), "*", "*")
       val doneOriginal = originalPersons.via(Flow[List[GedcomPerson]].map(p => p.map(c => convertGedcomToPerson(c)))).toMat(Sink.head)(Keep.right).run()
-      val dummyPerson = Person("", "", Timestamp.valueOf(LocalDateTime.now()),"", "","", None, 0, 0, 0, "", "", "M")
+      val dummyPerson = Person("", "", Timestamp.valueOf(LocalDateTime.now()),"", "","", None, 0, 0, 0, "", "", "M", gedcomFile)
       doneOriginal.onComplete {
         case Success(persons) => {
 
@@ -197,7 +198,7 @@ class TreeImporter extends Actor with ActorLogging with Marshallers {
             newP
           }
 
-          val sourcePersons: Source[List[GedcomPerson], Future[IOResult]] = filteredPersonList(personsFrom(listOfPersonStringsFrom(getRequiredLines(stringArrayFrom(gedcomFileMap("usa1"))))), "*", "*")
+          val sourcePersons: Source[List[GedcomPerson], Future[IOResult]] = filteredPersonList(personsFrom(listOfPersonStringsFrom(getRequiredLines(stringArrayFrom(gedcomFileMap(gedcomFile))))), "*", "*")
           val done = sourcePersons.via(Flow[List[GedcomPerson]].map(p => p.map(c => convertGedcomToPerson(c)).map(ps => addParentIds(ps)).map(per => savePerson(per)))).runForeach(person => println(person))
           done.onComplete(_ => system.terminate())
         }

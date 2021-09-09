@@ -24,9 +24,9 @@ trait Marshallers extends DefaultJsonProtocol  with SprayJsonSupport with NullOp
 
 
 
-  implicit val gedcomPersonFormat = jsonFormat10(GedcomPerson)
+  implicit val gedcomPersonFormat = jsonFormat11(GedcomPerson)
 
-  implicit val personFormat = jsonFormat13(Person)
+  implicit val personFormat = jsonFormat14(Person)
 
 
   implicit val personParamsFormat = jsonFormat2(PersonParams)
