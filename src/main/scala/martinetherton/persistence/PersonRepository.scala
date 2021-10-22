@@ -59,13 +59,13 @@ class PersonRepository {
     db.run(action)
 
   def getPersons(firstName: String = "*", surname: String = "*") = (firstName, surname) match {
-    case ("", "") => db.run(persons.result)
-    case ("*", "*") => db.run(persons.result)
-    case (firstName, "*") => db.run(persons.filter(_.firstName === firstName).result)
-    case (firstName, "") => db.run(persons.filter(_.firstName === firstName).result)
-    case ("*", surname) => db.run(persons.filter(_.surname === surname).result)
-    case ("", surname) => db.run(persons.filter(_.surname === surname).result)
-    case (firstName, surname) => db.run(persons.filter(p => p.firstName === firstName && p.surname === surname).result)
+    case ("", "") => db.run(persons.sortBy(_.firstName).result)
+    case ("*", "*") => db.run(persons.sortBy(_.firstName).result)
+    case (firstName, "*") => db.run(persons.filter(_.firstName === firstName).sortBy(_.firstName).result)
+    case (firstName, "") => db.run(persons.filter(_.firstName === firstName).sortBy(_.firstName).result)
+    case ("*", surname) => db.run(persons.filter(_.surname === surname).sortBy(_.firstName).result)
+    case ("", surname) => db.run(persons.filter(_.surname === surname).sortBy(_.firstName).result)
+    case (firstName, surname) => db.run(persons.filter(p => p.firstName === firstName && p.surname === surname).sortBy(_.firstName).result)
   }
 
   def insert(person: Person) = {

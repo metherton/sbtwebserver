@@ -4,7 +4,6 @@ import java.io.InputStream
 import java.security.{KeyStore, SecureRandom}
 
 import scala.language.postfixOps
-
 import akka.actor.{ActorSystem, Props}
 import akka.http.scaladsl.model.{ContentTypes, HttpEntity, HttpRequest, StatusCodes}
 import akka.http.scaladsl.server.Directives._
@@ -20,9 +19,8 @@ import martinetherton.client.{FintechClient, Request}
 import martinetherton.domain.Constants._
 import martinetherton.domain._
 import martinetherton.mappers.Marshallers
-import martinetherton.persistence.{LoserRepository, PersonRepository, ProfileRepository}
+import martinetherton.persistence.{BranchRepository, LoserRepository, PersonRepository, ProfileRepository}
 import spray.json._
-
 
 import scala.concurrent.duration._
 import scala.io.StdIn
@@ -34,6 +32,7 @@ object WebServer extends App with Marshallers  {
   implicit val executionContext = system.dispatcher
   val loserRepo = new LoserRepository
   val profileRepo = new ProfileRepository
+  val branchRepo = new BranchRepository
   val repo = new PersonRepository
   val treeReader = system.actorOf(Props[TreeImporter], "TreeImporter")
  // val scheduler = QuartzSchedulerExtension(system)
@@ -42,150 +41,181 @@ object WebServer extends App with Marshallers  {
 
   val routing: Route = cors() {
     Route.seal {
-      post {
-        path("api" / "hello" ) {
-          complete {
-            HttpEntity(
-              ContentTypes.`text/html(UTF-8)`,
-              """
-                |<html>
-                |<body>
-                |hello from the high level Akka HTTP
-                |</body>
-                |</html>
-              """.stripMargin
-            )
+//      path( Remaining ) { bla =>
+//        print(bla.getBytes("UTF-16"))
+//        complete {
+//          HttpEntity(
+//            ContentTypes.`text/html(UTF-8)`,
+//            """
+//              |<html>
+//              |<body>
+//              |random utf
+//              |</body>
+//              |</html>
+//            """.stripMargin
+//          )
+//        }
+//      } ~
+//      path( "random" ) {
+//        complete {
+//          HttpEntity(
+//            ContentTypes.`text/html(UTF-8)`,
+//            """
+//              |<html>
+//              |<body>
+//              |random
+//              |</body>
+//              |</html>
+//            """.stripMargin
+//          )
+//        }
+//      } ~
+//      path("api" / "hello" ) {
+//        complete {
+//          HttpEntity(
+//            ContentTypes.`text/html(UTF-8)`,
+//            """
+//              |<html>
+//              |<body>
+//              |hello from the high level Akka HTTP
+//              |</body>
+//              |</html>
+//            """.stripMargin
+//          )
+//        }
+//      } ~
+      path("api" / "persons" ) {
+        (extractRequest & extractLog) { (request, log) =>
+          //print(s"$request.entity")
+          val entity = request.entity
+          val strictEntityFuture = entity.toStrict(2 seconds)
+          val personParamsFuture = strictEntityFuture.map(_.data.utf8String.parseJson.convertTo[PersonParams])
+          onComplete(personParamsFuture) {
+            case Success(person) =>
+              log.info(s"Got person: $person")
+              val result = repo.getPersons(person.firstName.trim, person.surname.trim)
+              complete(result)
+            case Failure(ex) =>
+              failWith(ex)
           }
-        } ~
-        path("api" / "persons" ) {
-          (extractRequest & extractLog) { (request, log) =>
-            //print(s"$request.entity")
-            val entity = request.entity
-            val strictEntityFuture = entity.toStrict(2 seconds)
-            val personParamsFuture = strictEntityFuture.map(_.data.utf8String.parseJson.convertTo[PersonParams])
-            onComplete(personParamsFuture) {
-              case Success(person) =>
-                log.info(s"Got person: $person")
-                val result = repo.getPersons(person.firstName.trim, person.surname.trim)
-                complete(result)
-              case Failure(ex) =>
-                failWith(ex)
-            }
+        }
+      } ~
+      path("api" / "branches" ) {
+        val result = branchRepo.getBranches()
+        complete(result)
+      } ~
+      path("metrics" ) {
+        complete {
+          HttpEntity(
+            ContentTypes.`text/html(UTF-8)`,
+            """
+              |<html>
+              |<body>
+              |hello from the high level Akka HTTP
+              |</body>
+              |</html>
+            """.stripMargin
+          )
+        }
+      } ~
+      path("persons" ) {
+        (extractRequest & extractLog) { (request, log) =>
+          //print(s"$request.entity")
+          val entity = request.entity
+          val strictEntityFuture = entity.toStrict(2 seconds)
+          val personParamsFuture = strictEntityFuture.map(_.data.utf8String.parseJson.convertTo[PersonParams])
+          onComplete(personParamsFuture) {
+            case Success(person) =>
+              log.info(s"Got person: $person")
+              val result = repo.getPersons(person.firstName.trim, person.surname.trim)
+              complete(result)
+            case Failure(ex) =>
+              failWith(ex)
           }
-        } ~
-        path("hello" ) {
-          complete {
-            HttpEntity(
-              ContentTypes.`text/html(UTF-8)`,
-              """
-                |<html>
-                |<body>
-                |hello from the high level Akka HTTP
-                |</body>
-                |</html>
-              """.stripMargin
-            )
-          }
-        } ~
-        path("persons" ) {
-          (extractRequest & extractLog) { (request, log) =>
-            //print(s"$request.entity")
-            val entity = request.entity
-            val strictEntityFuture = entity.toStrict(2 seconds)
-            val personParamsFuture = strictEntityFuture.map(_.data.utf8String.parseJson.convertTo[PersonParams])
-            onComplete(personParamsFuture) {
-              case Success(person) =>
-                log.info(s"Got person: $person")
-                val result = repo.getPersons(person.firstName.trim, person.surname.trim)
-                complete(result)
-              case Failure(ex) =>
-                failWith(ex)
-            }
-          }
-        } ~
-        path("losers") {
-          val result = loserRepo.getAllLosers()
-          complete(result)
-        } ~
-        path("profiles") {
-          val result = profileRepo.getProfiles()
-          complete(result)
-        } ~
-        path("profile" / Segment ) { company =>
-          onComplete(Request(Host("fintech"), Url(List("profile", company), Nil)).get) {
-            case Success(response) =>
-              complete(response)
+        }
+      } ~
+      path("losers") {
+        val result = loserRepo.getAllLosers()
+        complete(result)
+      } ~
+      path("profiles") {
+        val result = profileRepo.getProfiles()
+        complete(result)
+      } ~
+      path("profile" / Segment ) { company =>
+        onComplete(Request(Host("fintech"), Url(List("profile", company), Nil)).get) {
+          case Success(response) =>
+            complete(response)
 //              val strictEntityFuture = response.entity.toStrict(10 seconds)
- //             val listProfileFuture = strictEntityFuture.map(_.data.utf8String.parseJson.convertTo[List[Profile]])
+//             val listProfileFuture = strictEntityFuture.map(_.data.utf8String.parseJson.convertTo[List[Profile]])
 
-   //           onComplete(listProfileFuture) {
+ //           onComplete(listProfileFuture) {
 
 //                case Success(listProfile) => complete(listProfile)
 //                case Failure(ex) => failWith(ex)
 //              }
 
+          case Failure(ex) => failWith(ex)
+        }
+      } ~
+      path("tickerSearch" ) {
+        parameters('query.as[String], 'limit.as[String], 'exchange.as[String]) { (query, limit, exchange) =>
+          onComplete(Request(Host("fintech"), Url(List("search"), List(("query", query), ("limit", limit), ("exchange", exchange)))).get) {
+            case Success(response) =>
+              val strictEntityFuture = response.entity.toStrict(10 seconds)
+              val listTickerSearchFuture = strictEntityFuture.map(_.data.utf8String.parseJson.convertTo[List[SymbolName]])
+
+              onComplete(listTickerSearchFuture) {
+                case Success(listTickerSearch) => complete(listTickerSearch)
+                case Failure(ex) => failWith(ex)
+              }
+
             case Failure(ex) => failWith(ex)
           }
-        } ~
-        path("tickerSearch" ) {
-          parameters('query.as[String], 'limit.as[String], 'exchange.as[String]) { (query, limit, exchange) =>
-            onComplete(Request(Host("fintech"), Url(List("search"), List(("query", query), ("limit", limit), ("exchange", exchange)))).get) {
-              case Success(response) =>
-                val strictEntityFuture = response.entity.toStrict(10 seconds)
-                val listTickerSearchFuture = strictEntityFuture.map(_.data.utf8String.parseJson.convertTo[List[SymbolName]])
+        }
+      } ~
+      path("currencyExchangeRate") {
+        onComplete(Request(Host("fintech"), Url(List("fx"), Nil)).get) {
+          case Success(response) =>
+            val strictEntityFuture = response.entity.toStrict(10 seconds)
+            val listStocksFuture = strictEntityFuture.map(_.data.utf8String.parseJson.convertTo[List[CurrencyExchangeRate]])
 
-                onComplete(listTickerSearchFuture) {
-                  case Success(listTickerSearch) => complete(listTickerSearch)
-                  case Failure(ex) => failWith(ex)
-                }
-
+            onComplete(listStocksFuture) {
+              case Success(listStocks) => complete(listStocks)
               case Failure(ex) => failWith(ex)
             }
-          }
-        } ~
-        path("currencyExchangeRate") {
-          onComplete(Request(Host("fintech"), Url(List("fx"), Nil)).get) {
-            case Success(response) =>
-              val strictEntityFuture = response.entity.toStrict(10 seconds)
-              val listStocksFuture = strictEntityFuture.map(_.data.utf8String.parseJson.convertTo[List[CurrencyExchangeRate]])
-
-              onComplete(listStocksFuture) {
-                case Success(listStocks) => complete(listStocks)
-                case Failure(ex) => failWith(ex)
-              }
-            case Failure(ex) => failWith(ex)
-          }
-        } ~
-        path("sectorsPerformance") {
-          onComplete(Request(Host("fintech"), Url(List("stock", "sectors-performance"), Nil)).get) {
-            case Success(response) =>
-              val strictEntityFuture = response.entity.toStrict(10 seconds)
-              val listStocksFuture = strictEntityFuture.map(_.data.utf8String.parseJson.convertTo[SectorPerformance])
-
-              onComplete(listStocksFuture) {
-                case Success(listStocks) => complete(listStocks)
-                case Failure(ex) => failWith(ex)
-              }
-            case Failure(ex) => failWith(ex)
-          }
-        } ~
-        path("liststocks") {
-          onComplete(Request(Host("fintech"), Url(List("stock", "list"), Nil)).get) {
-            case Success(response) =>
-              val strictEntityFuture = response.entity.toStrict(10 seconds)
-              val listStocksFuture = strictEntityFuture.map(_.data.utf8String.parseJson.convertTo[List[Stock]])
-
-              onComplete(listStocksFuture) {
-                case Success(listStocks) => complete(listStocks)
-                case Failure(ex) => failWith(ex)
-              }
-
-            case Failure(ex) => failWith(ex)
-          }
-        } ~
-        pathEndOrSingleSlash {
-          complete(StatusCodes.OK)
+          case Failure(ex) => failWith(ex)
         }
+      } ~
+      path("sectorsPerformance") {
+        onComplete(Request(Host("fintech"), Url(List("stock", "sectors-performance"), Nil)).get) {
+          case Success(response) =>
+            val strictEntityFuture = response.entity.toStrict(10 seconds)
+            val listStocksFuture = strictEntityFuture.map(_.data.utf8String.parseJson.convertTo[SectorPerformance])
+
+            onComplete(listStocksFuture) {
+              case Success(listStocks) => complete(listStocks)
+              case Failure(ex) => failWith(ex)
+            }
+          case Failure(ex) => failWith(ex)
+        }
+      } ~
+      path("liststocks") {
+        onComplete(Request(Host("fintech"), Url(List("stock", "list"), Nil)).get) {
+          case Success(response) =>
+            val strictEntityFuture = response.entity.toStrict(10 seconds)
+            val listStocksFuture = strictEntityFuture.map(_.data.utf8String.parseJson.convertTo[List[Stock]])
+
+            onComplete(listStocksFuture) {
+              case Success(listStocks) => complete(listStocks)
+              case Failure(ex) => failWith(ex)
+            }
+
+          case Failure(ex) => failWith(ex)
+        }
+      } ~
+      pathEndOrSingleSlash {
+        complete(StatusCodes.OK)
       }
     }
   }

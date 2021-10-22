@@ -32,6 +32,7 @@ trait Marshallers extends DefaultJsonProtocol  with SprayJsonSupport with NullOp
   implicit val personParamsFormat = jsonFormat2(PersonParams)
 
   implicit val stockFormat = jsonFormat2(Stock)
+  implicit val branchFormat = jsonFormat2(Branch)
   implicit val executiveFormat = jsonFormat8(Executive)
   implicit val symbolNameFormat = jsonFormat2(SymbolName)
   implicit val currencyExchangeRateFormat = jsonFormat8(CurrencyExchangeRate)
