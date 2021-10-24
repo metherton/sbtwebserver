@@ -11,6 +11,7 @@ import akka.http.scaladsl.server.{RequestContext, Route}
 import akka.http.scaladsl.{ConnectionContext, Http, HttpsConnectionContext}
 import ch.megard.akka.http.cors.scaladsl.CorsDirectives._
 import com.typesafe.akka.extension.quartz.QuartzSchedulerExtension
+import io.prometheus.client.Counter
 import javax.net.ssl.{KeyManagerFactory, SSLContext, TrustManagerFactory}
 import martinetherton.actors.TreeImporter
 import martinetherton.actors.TreeImporter.ImportTree
@@ -38,6 +39,10 @@ object WebServer extends App with Marshallers  {
  // val scheduler = QuartzSchedulerExtension(system)
 
 //  scheduler.schedule("Every24Hours3", treeReader, ImportTree)
+
+  val webServerCounter = Counter.build().name("requests_total").help("Requests").register()
+
+
 
   val routing: Route = cors() {
     Route.seal {
@@ -104,7 +109,8 @@ object WebServer extends App with Marshallers  {
         val result = branchRepo.getBranches()
         complete(result)
       } ~
-      path("metrics" ) {
+      path("hello" ) {
+        webServerCounter.inc()
         complete {
           HttpEntity(
             ContentTypes.`text/html(UTF-8)`,

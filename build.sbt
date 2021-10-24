@@ -22,6 +22,11 @@ val httpTest = "com.typesafe.akka" %% "akka-http-testkit" % "10.2.4" % Test
 val streamTest = "com.typesafe.akka" %% "akka-stream-testkit" % "2.6.5" % Test
 val quartz = "com.enragedginger" %% "akka-quartz-scheduler" % "1.8.5-akka-2.6.x"
 val cucumber = "io.cucumber" %% "cucumber-scala" % "6.10.4" % Test
+val pm1 =  "com.softwaremill.sttp.client" %% "prometheus-backend" % "2.1.5"
+//val pm1 =  "io.prometheus" %% "simpleclient" % "0.1.0"
+
+
+
 
 ThisBuild / scalaVersion     := "2.13.1"
 ThisBuild / version          := "0.1.3-SNAPSHOT"
@@ -37,7 +42,7 @@ ThisBuild / organizationName := "martinetherton"
 lazy val root = (project in file("."))
   .settings(
     name := "server",
-    libraryDependencies ++= Seq(scalaTest % Test, jsonMapper, akkaHttp, akkaStream, jsonSerializer, akkaActor, persistence, httpTest, streamTest, cors, slick1, slick2, slick3, mysql, logger, joda, quartz, cucumber)
+    libraryDependencies ++= Seq(scalaTest % Test, jsonMapper, akkaHttp, akkaStream, jsonSerializer, akkaActor, persistence, httpTest, streamTest, cors, slick1, slick2, slick3, mysql, logger, joda, quartz, cucumber, pm1)
   )
 
 
