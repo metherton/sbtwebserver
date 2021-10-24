@@ -11,7 +11,10 @@ import akka.http.scaladsl.server.{RequestContext, Route}
 import akka.http.scaladsl.{ConnectionContext, Http, HttpsConnectionContext}
 import ch.megard.akka.http.cors.scaladsl.CorsDirectives._
 import com.typesafe.akka.extension.quartz.QuartzSchedulerExtension
-import io.prometheus.client.Counter
+import com.varwise.akka.http.prometheus.PrometheusResponseTimeRecorder
+import com.varwise.akka.http.prometheus.api.MetricsEndpoint
+import com.varwise.akka.http.prometheus.directives.ResponseTimeRecordingDirectives
+import io.prometheus.client.{CollectorRegistry, Counter}
 import javax.net.ssl.{KeyManagerFactory, SSLContext, TrustManagerFactory}
 import martinetherton.actors.TreeImporter
 import martinetherton.actors.TreeImporter.ImportTree
@@ -40,7 +43,19 @@ object WebServer extends App with Marshallers  {
 
 //  scheduler.schedule("Every24Hours3", treeReader, ImportTree)
 
-  val webServerCounter = Counter.build().name("requests_total").help("Requests").register()
+  import responseTimeDirectives._
+
+  private val prometheusRegistry: CollectorRegistry = PrometheusResponseTimeRecorder.DefaultRegistry
+  private val prometheusResponseTimeRecorder: PrometheusResponseTimeRecorder = PrometheusResponseTimeRecorder.Default
+
+  private val metricsEndpoint = new MetricsEndpoint(prometheusRegistry)
+
+  private val responseTimeDirectives = ResponseTimeRecordingDirectives(prometheusResponseTimeRecorder)
+
+  private val r = scala.util.Random
+
+
+  val webServerCounter = Counter.build().name("app_requests_total").help("Requests").register()
 
 
 
@@ -109,19 +124,30 @@ object WebServer extends App with Marshallers  {
         val result = branchRepo.getBranches()
         complete(result)
       } ~
+//        path("metrics" ) {
+//          complete {
+//            HttpEntity(
+//              ContentTypes.`text/html(UTF-8)`,
+//              PrometheusBackend.DefaultSuccessCounterName
+//            )
+//          }
+//        } ~
       path("hello" ) {
-        webServerCounter.inc()
-        complete {
-          HttpEntity(
-            ContentTypes.`text/html(UTF-8)`,
-            """
-              |<html>
-              |<body>
-              |hello from the high level Akka HTTP
-              |</body>
-              |</html>
-            """.stripMargin
-          )
+        recordResponseTime("/hello") {
+          complete {
+            val sleepTime = r.nextLong(1000)
+            Thread.sleep(sleepTime)
+            HttpEntity(
+              ContentTypes.`text/html(UTF-8)`,
+              """
+                |<html>
+                |<body>
+                |hello from the high level Akka HTTP
+                |</body>
+                |</html>
+              """.stripMargin
+            )
+          }
         }
       } ~
       path("persons" ) {
@@ -234,6 +260,7 @@ object WebServer extends App with Marshallers  {
   bindingFuture
     .flatMap(_.unbind()) // trigger unbinding from the port
     .onComplete(_ => system.terminate()) // and shutdown when done
+
 
 
 //  def https() = {
