@@ -12,7 +12,7 @@ import akka.http.scaladsl.{ConnectionContext, Http, HttpsConnectionContext}
 import ch.megard.akka.http.cors.scaladsl.CorsDirectives._
 import com.typesafe.akka.extension.quartz.QuartzSchedulerExtension
 import com.varwise.akka.http.prometheus.PrometheusResponseTimeRecorder
-import com.varwise.akka.http.prometheus.api.MetricsEndpoint
+import com.varwise.akka.http.prometheus.api.{MetricFamilySamplesEntity, MetricsEndpoint}
 import com.varwise.akka.http.prometheus.directives.ResponseTimeRecordingDirectives
 import io.prometheus.client.{CollectorRegistry, Counter}
 import javax.net.ssl.{KeyManagerFactory, SSLContext, TrustManagerFactory}
@@ -43,7 +43,6 @@ object WebServer extends App with Marshallers  {
 
 //  scheduler.schedule("Every24Hours3", treeReader, ImportTree)
 
-  import responseTimeDirectives._
 
   private val prometheusRegistry: CollectorRegistry = PrometheusResponseTimeRecorder.DefaultRegistry
   private val prometheusResponseTimeRecorder: PrometheusResponseTimeRecorder = PrometheusResponseTimeRecorder.Default
@@ -133,9 +132,10 @@ object WebServer extends App with Marshallers  {
 //          }
 //        } ~
       path("hello" ) {
+        import responseTimeDirectives._
         recordResponseTime("/hello") {
           complete {
-            val sleepTime = r.nextLong(1000)
+            val sleepTime = r.nextLong(5000)
             Thread.sleep(sleepTime)
             HttpEntity(
               ContentTypes.`text/html(UTF-8)`,
@@ -148,6 +148,11 @@ object WebServer extends App with Marshallers  {
               """.stripMargin
             )
           }
+        }
+      } ~
+      path("metrics" ) {
+        complete {
+          MetricFamilySamplesEntity.fromRegistry(prometheusRegistry)
         }
       } ~
       path("persons" ) {

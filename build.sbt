@@ -22,7 +22,7 @@ val httpTest = "com.typesafe.akka" %% "akka-http-testkit" % "10.2.4" % Test
 val streamTest = "com.typesafe.akka" %% "akka-stream-testkit" % "2.6.5" % Test
 val quartz = "com.enragedginger" %% "akka-quartz-scheduler" % "1.8.5-akka-2.6.x"
 val cucumber = "io.cucumber" %% "cucumber-scala" % "6.10.4" % Test
-val pm1 =  "com.varwise" %% "prometheus-akka-http" % "0.6.0"
+val pm1 =  "com.varwise" %% "prometheus-akka-http" % "0.6.0 "
 //val pm1 =  "io.prometheus" %% "simpleclient" % "0.1.0"
 
 
