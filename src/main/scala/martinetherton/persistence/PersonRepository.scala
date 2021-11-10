@@ -58,14 +58,15 @@ class PersonRepository {
   def exec[T](action: DBIO[T]): Future[T] =
     db.run(action)
 
-  def getPersons(firstName: String = "*", surname: String = "*") = (firstName, surname) match {
-    case ("", "") => db.run(persons.sortBy(_.firstName).result)
-    case ("*", "*") => db.run(persons.sortBy(_.firstName).result)
-    case (firstName, "*") => db.run(persons.filter(_.firstName === firstName).sortBy(_.firstName).result)
-    case (firstName, "") => db.run(persons.filter(_.firstName === firstName).sortBy(_.firstName).result)
-    case ("*", surname) => db.run(persons.filter(_.surname === surname).sortBy(_.firstName).result)
-    case ("", surname) => db.run(persons.filter(_.surname === surname).sortBy(_.firstName).result)
-    case (firstName, surname) => db.run(persons.filter(p => p.firstName === firstName && p.surname === surname).sortBy(_.firstName).result)
+  def getPersons(firstName: String = "*", surname: String = "*", tree: String = "*") = (firstName, surname, tree) match {
+    case ("", "", "") => db.run(persons.sortBy(_.firstName).result)
+    case ("*", "*", "*") => db.run(persons.sortBy(_.firstName).result)
+    case ("*", "*", "london1") => db.run(persons.filter(_.tree === tree).sortBy(_.firstName).result)
+    case (firstName, "*", "*") => db.run(persons.filter(_.firstName === firstName).sortBy(_.firstName).result)
+    case (firstName, "", "") => db.run(persons.filter(_.firstName === firstName).sortBy(_.firstName).result)
+    case ("*", surname, "*") => db.run(persons.filter(_.surname === surname).sortBy(_.firstName).result)
+    case ("", surname, tree) => db.run(persons.filter(p => p.surname === surname && p.tree === tree).sortBy(_.firstName).result)
+    case (firstName, surname, tree) => db.run(persons.filter(p => p.firstName === firstName && p.surname === surname && p.tree === tree).sortBy(_.firstName).result)
   }
 
   def insert(person: Person) = {
