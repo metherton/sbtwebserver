@@ -65,6 +65,7 @@ class PersonRepository {
     case (firstName, "*", "*") => db.run(persons.filter(_.firstName === firstName).sortBy(_.firstName).result)
     case (firstName, "", "") => db.run(persons.filter(_.firstName === firstName).sortBy(_.firstName).result)
     case ("*", surname, "*") => db.run(persons.filter(_.surname === surname).sortBy(_.firstName).result)
+    case ("", surname, "*") => db.run(persons.filter(_.surname === surname).sortBy(_.firstName).result)
     case ("", surname, tree) => db.run(persons.filter(p => p.surname === surname && p.tree === tree).sortBy(_.firstName).result)
     case (firstName, surname, tree) => db.run(persons.filter(p => p.firstName === firstName && p.surname === surname && p.tree === tree).sortBy(_.firstName).result)
   }
