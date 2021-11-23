@@ -1,13 +1,17 @@
 package martinetherton.web
 
-import java.io.InputStream
+import java.io.{File, InputStream}
 import java.security.{KeyStore, SecureRandom}
 
+import akka.Done
 import akka.actor.{ActorSystem, Props}
+import akka.http.scaladsl.model.headers.{HttpCookie, SameSite}
 import akka.http.scaladsl.{ConnectionContext, Http, HttpsConnectionContext}
-import akka.http.scaladsl.model.{ContentTypes, HttpEntity, StatusCodes}
+import akka.http.scaladsl.model.{ContentTypes, DateTime, HttpEntity, Multipart, StatusCodes}
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
+import akka.stream.scaladsl.{FileIO, Framing, Sink, Source}
+import akka.util.ByteString
 import ch.megard.akka.http.cors.scaladsl.CorsDirectives._
 import com.varwise.akka.http.prometheus.PrometheusResponseTimeRecorder
 import com.varwise.akka.http.prometheus.api.{MetricFamilySamplesEntity, MetricsEndpoint}
@@ -22,12 +26,14 @@ import martinetherton.mappers.Marshallers
 import martinetherton.persistence.{BranchRepository, LoserRepository, PersonRepository, ProfileRepository}
 import spray.json._
 
+import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.io.StdIn
 import scala.language.postfixOps
 import scala.util.{Failure, Success}
 
 object WebServer extends App with Marshallers  {
+
 
   implicit val system = ActorSystem("martinetherton-webserver")
   implicit val executionContext = system.dispatcher
@@ -41,8 +47,96 @@ object WebServer extends App with Marshallers  {
   private val r = scala.util.Random
   val webServerCounter = Counter.build().name("app_requests_total").help("Requests").register()
 
+  case class P(firstName: String, surname: String)
+
   val routing: Route = cors() {
     Route.seal {
+      path("api" / "upload" ) {
+        (extractLog) { (log) =>
+          // handle uploading files
+          // multipart / form data
+          entity(as[Multipart.FormData]) { formdata =>
+            // handle file payload
+            val partsSource: Source[Multipart.FormData.BodyPart, Any] = formdata.parts
+            var firstName: String = ""
+            var surname: String = ""
+            val filePartsSink: Sink[Multipart.FormData.BodyPart, Future[Done]] = Sink.foreach[Multipart.FormData.BodyPart] { bodyPart =>
+              if (bodyPart.name == "myFile") {
+                // create a file
+                val filename = "src/main/resources/download/" + bodyPart.filename.getOrElse("tempFile_" + System.currentTimeMillis())
+                val file = new File(filename)
+
+
+                log.info(s"writing to file $filename")
+
+                val fileContentsSource: Source[ByteString, _] = bodyPart.entity.dataBytes
+                val fileContentSink: Sink[ByteString, _] = FileIO.toPath(file.toPath)
+
+                fileContentsSource.runWith(fileContentSink)
+              }
+              else if (bodyPart.name == "firstName") {
+                firstName = bodyPart.entity.asInstanceOf[HttpEntity.Strict].data.utf8String
+              }
+              else if (bodyPart.name == "surname") {
+                surname = bodyPart.entity.asInstanceOf[HttpEntity.Strict].data.utf8String
+              }
+            }
+
+            val writeOperationFuture = partsSource.runWith(filePartsSink)
+            onComplete(writeOperationFuture) {
+              case Success(_) => {
+                var p = new P(firstName, surname)
+
+                complete("File uploaded" + s"person uploaded ${p}")
+              }
+              case Failure(ex) => complete(s"File failed to upload $ex")
+            }
+          }
+        }
+      } ~
+      path("upload" ) {
+        (extractLog) { (log) =>
+          // handle uploading files
+          // multipart / form data
+          entity(as[Multipart.FormData]) { formdata =>
+            // handle file payload
+            val partsSource: Source[Multipart.FormData.BodyPart, Any] = formdata.parts
+            var firstName: String = ""
+            var surname: String = ""
+            val filePartsSink: Sink[Multipart.FormData.BodyPart, Future[Done]] = Sink.foreach[Multipart.FormData.BodyPart] { bodyPart =>
+              if (bodyPart.name == "myFile") {
+                // create a file
+                val filename = "src/main/resources/download/" + bodyPart.filename.getOrElse("tempFile_" + System.currentTimeMillis())
+                val file = new File(filename)
+
+
+                log.info(s"writing to file $filename")
+
+                val fileContentsSource: Source[ByteString, _] = bodyPart.entity.dataBytes
+                val fileContentSink: Sink[ByteString, _] = FileIO.toPath(file.toPath)
+
+                fileContentsSource.runWith(fileContentSink)
+              }
+              else if (bodyPart.name == "firstName") {
+                firstName = bodyPart.entity.asInstanceOf[HttpEntity.Strict].data.utf8String
+              }
+              else if (bodyPart.name == "surname") {
+                surname = bodyPart.entity.asInstanceOf[HttpEntity.Strict].data.utf8String
+              }
+            }
+
+            val writeOperationFuture = partsSource.runWith(filePartsSink)
+            onComplete(writeOperationFuture) {
+              case Success(_) => {
+                var p = new P(firstName, surname)
+
+                complete("File uploaded" + s"person uploaded ${p.toString}")
+              }
+              case Failure(ex) => complete(s"File failed to upload $ex")
+            }
+          }
+        }
+      } ~
       path("persons" ) {
         (extractRequest & extractLog) { (request, log) =>
           //print(s"$request.entity")
