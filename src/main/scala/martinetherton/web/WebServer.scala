@@ -67,7 +67,7 @@ object WebServer extends App with Marshallers  {
             val filePartsSink: Sink[Multipart.FormData.BodyPart, Future[Done]] = Sink.foreach[Multipart.FormData.BodyPart] { bodyPart =>
               if (bodyPart.name == "myFile") {
                 // create a file
-                val filename = "src/main/resources/download/" + bodyPart.filename.getOrElse("tempFile_" + System.currentTimeMillis())
+                val filename = bodyPart.filename.getOrElse("tempFile_" + System.currentTimeMillis())
                 val file = new File(filename)
 
 
@@ -110,7 +110,9 @@ object WebServer extends App with Marshallers  {
             val filePartsSink: Sink[Multipart.FormData.BodyPart, Future[Done]] = Sink.foreach[Multipart.FormData.BodyPart] { bodyPart =>
               if (bodyPart.name == "myFile") {
                 // create a file
-                val filename = "src/main/resources/download/" + bodyPart.filename.getOrElse("tempFile_" + System.currentTimeMillis())
+//                val filename = "src/main/resources/download/" + bodyPart.filename.getOrElse("tempFile_" + System.currentTimeMillis())
+
+                val filename = bodyPart.filename.getOrElse("tempFile_" + System.currentTimeMillis())
                 val file = new File(filename)
 
 
