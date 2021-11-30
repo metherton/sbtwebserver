@@ -58,8 +58,8 @@ object WebServer extends App with Marshallers  {
           entity(as[Multipart.FormData]) { formdata =>
             // handle file payload
             val partsSource: Source[Multipart.FormData.BodyPart, Any] = formdata.parts
-            var firstName: String = ""
-            var surname: String = ""
+            var firstName: String = "fred"
+            var surname: String = "bloggs"
             val filePartsSink: Sink[Multipart.FormData.BodyPart, Future[Done]] = Sink.foreach[Multipart.FormData.BodyPart] { bodyPart =>
               if (bodyPart.name == "myFile") {
                 // create a file
@@ -85,9 +85,9 @@ object WebServer extends App with Marshallers  {
             val writeOperationFuture = partsSource.runWith(filePartsSink)
             onComplete(writeOperationFuture) {
               case Success(_) => {
-                var p = new P(firstName, surname)
+                var p = new P("bob", "smith")
 
-                complete("File uploaded" + s"person uploaded ${p}")
+                complete("File uploaded" + s"person uploaded ${p.firstName}")
               }
               case Failure(ex) => complete(s"File failed to upload $ex")
             }
@@ -101,8 +101,8 @@ object WebServer extends App with Marshallers  {
           entity(as[Multipart.FormData]) { formdata =>
             // handle file payload
             val partsSource: Source[Multipart.FormData.BodyPart, Any] = formdata.parts
-            var firstName: String = ""
-            var surname: String = ""
+            var firstName1: String = ""
+            var surname1: String = ""
             val filePartsSink: Sink[Multipart.FormData.BodyPart, Future[Done]] = Sink.foreach[Multipart.FormData.BodyPart] { bodyPart =>
               if (bodyPart.name == "myFile") {
                 // create a file
@@ -118,19 +118,19 @@ object WebServer extends App with Marshallers  {
                 fileContentsSource.runWith(fileContentSink)
               }
               else if (bodyPart.name == "firstName") {
-                firstName = bodyPart.entity.asInstanceOf[HttpEntity.Strict].data.utf8String
+                firstName1 = bodyPart.entity.asInstanceOf[HttpEntity.Strict].data.utf8String
               }
               else if (bodyPart.name == "surname") {
-                surname = bodyPart.entity.asInstanceOf[HttpEntity.Strict].data.utf8String
+                surname1 = bodyPart.entity.asInstanceOf[HttpEntity.Strict].data.utf8String
               }
             }
 
             val writeOperationFuture = partsSource.runWith(filePartsSink)
             onComplete(writeOperationFuture) {
               case Success(_) => {
-                var p = new P(firstName, surname)
+                var p = new P("oo", "you")
 
-                complete("File uploaded" + s"person uploaded ${p.toString}")
+                complete("File uploaded" + s"person uploaded ${p}")
               }
               case Failure(ex) => complete(s"File failed to upload $ex")
             }
