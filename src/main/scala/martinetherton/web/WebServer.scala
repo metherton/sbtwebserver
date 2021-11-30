@@ -48,6 +48,12 @@ object WebServer extends App with Marshallers  {
   val webServerCounter = Counter.build().name("app_requests_total").help("Requests").register()
 
   case class P(firstName: String, surname: String)
+  class Pers {
+    var firstName = ""
+    var surname = ""
+  }
+
+  var myPers = new Pers
 
   val routing: Route = cors() {
     Route.seal {
@@ -58,8 +64,6 @@ object WebServer extends App with Marshallers  {
           entity(as[Multipart.FormData]) { formdata =>
             // handle file payload
             val partsSource: Source[Multipart.FormData.BodyPart, Any] = formdata.parts
-            var firstName: String = "fred"
-            var surname: String = "bloggs"
             val filePartsSink: Sink[Multipart.FormData.BodyPart, Future[Done]] = Sink.foreach[Multipart.FormData.BodyPart] { bodyPart =>
               if (bodyPart.name == "myFile") {
                 // create a file
@@ -75,10 +79,10 @@ object WebServer extends App with Marshallers  {
                 fileContentsSource.runWith(fileContentSink)
               }
               else if (bodyPart.name == "firstName") {
-                firstName = bodyPart.entity.asInstanceOf[HttpEntity.Strict].data.utf8String
+                myPers.firstName = bodyPart.entity.asInstanceOf[HttpEntity.Strict].data.utf8String
               }
               else if (bodyPart.name == "surname") {
-                surname = bodyPart.entity.asInstanceOf[HttpEntity.Strict].data.utf8String
+                myPers.surname = bodyPart.entity.asInstanceOf[HttpEntity.Strict].data.utf8String
               }
             }
 
@@ -87,7 +91,7 @@ object WebServer extends App with Marshallers  {
               case Success(_) => {
                 var p = new P("bob", "smith")
 
-                complete("File uploaded" + s"person uploaded ${p.firstName} ${p.surname}")
+                complete("File uploaded" + s"person uploaded ${myPers.firstName} ${myPers.surname}")
               }
               case Failure(ex) => complete(s"File failed to upload $ex")
             }
@@ -118,10 +122,10 @@ object WebServer extends App with Marshallers  {
                 fileContentsSource.runWith(fileContentSink)
               }
               else if (bodyPart.name == "firstName") {
-                firstName1 = bodyPart.entity.asInstanceOf[HttpEntity.Strict].data.utf8String
+                myPers.firstName = bodyPart.entity.asInstanceOf[HttpEntity.Strict].data.utf8String
               }
               else if (bodyPart.name == "surname") {
-                surname1 = bodyPart.entity.asInstanceOf[HttpEntity.Strict].data.utf8String
+                myPers.surname = bodyPart.entity.asInstanceOf[HttpEntity.Strict].data.utf8String
               }
             }
 
@@ -129,8 +133,7 @@ object WebServer extends App with Marshallers  {
             onComplete(writeOperationFuture) {
               case Success(_) => {
                 var p = new P("oo", "you")
-
-                complete("File uploaded" + s"person uploaded ${p}")
+                complete("File uploaded" + s"person uploaded ${myPers.firstName} ${myPers.surname}")
               }
               case Failure(ex) => complete(s"File failed to upload $ex")
             }
