@@ -87,7 +87,7 @@ object WebServer extends App with Marshallers  {
               case Success(_) => {
                 var p = new P("bob", "smith")
 
-                complete("File uploaded" + s"person uploaded ${p.firstName}")
+                complete("File uploaded" + s"person uploaded ${p.firstName} ${p.surname}")
               }
               case Failure(ex) => complete(s"File failed to upload $ex")
             }
