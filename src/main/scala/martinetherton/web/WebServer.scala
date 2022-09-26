@@ -7,7 +7,7 @@ import akka.Done
 import akka.actor.{ActorSystem, Props}
 import akka.http.scaladsl.model.headers.{HttpCookie, SameSite}
 import akka.http.scaladsl.{ConnectionContext, Http, HttpsConnectionContext}
-import akka.http.scaladsl.model.{ContentTypes, DateTime, HttpEntity, Multipart, StatusCodes}
+import akka.http.scaladsl.model.{ContentTypes, DateTime, HttpEntity, HttpRequest, Multipart, StatusCodes}
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import akka.stream.scaladsl.{FileIO, Framing, Sink, Source}
@@ -58,42 +58,44 @@ object WebServer extends App with Marshallers  {
   val routing: Route = cors() {
     Route.seal {
       path("api" / "upload" ) {
-        (extractLog) { (log) =>
-          // handle uploading files
-          // multipart / form data
-          entity(as[Multipart.FormData]) { formdata =>
-            // handle file payload
-            val partsSource: Source[Multipart.FormData.BodyPart, Any] = formdata.parts
-            val filePartsSink: Sink[Multipart.FormData.BodyPart, Future[Done]] = Sink.foreach[Multipart.FormData.BodyPart] { bodyPart =>
-              if (bodyPart.name == "myFile") {
-                // create a file
-                val filename = bodyPart.filename.getOrElse("tempFile_" + System.currentTimeMillis())
-                val file = new File(filename)
+        extractRequest { (httpRequest: HttpRequest) =>
+          (extractLog) { (log) =>
+            // handle uploading files
+            // multipart / form data
+            entity(as[Multipart.FormData]) { formdata =>
+              // handle file payload
+              val partsSource: Source[Multipart.FormData.BodyPart, Any] = formdata.parts
+              val filePartsSink: Sink[Multipart.FormData.BodyPart, Future[Done]] = Sink.foreach[Multipart.FormData.BodyPart] { bodyPart =>
+                if (bodyPart.name == "myFile") {
+                  // create a file
+                  val filename = bodyPart.filename.getOrElse("tempFile_" + System.currentTimeMillis())
+                  val file = new File(filename)
 
 
-                log.info(s"writing to file $filename")
+                  log.info(s"writing to file $filename")
 
-                val fileContentsSource: Source[ByteString, _] = bodyPart.entity.dataBytes
-                val fileContentSink: Sink[ByteString, _] = FileIO.toPath(file.toPath)
+                  val fileContentsSource: Source[ByteString, _] = bodyPart.entity.dataBytes
+                  val fileContentSink: Sink[ByteString, _] = FileIO.toPath(file.toPath)
 
-                fileContentsSource.runWith(fileContentSink)
+                  fileContentsSource.runWith(fileContentSink)
+                }
+                else if (bodyPart.name == "firstName") {
+                  myPers.firstName = bodyPart.entity.asInstanceOf[HttpEntity.Strict].data.utf8String
+                }
+                else if (bodyPart.name == "surname") {
+                  myPers.surname = bodyPart.entity.asInstanceOf[HttpEntity.Strict].data.utf8String
+                }
               }
-              else if (bodyPart.name == "firstName") {
-                myPers.firstName = bodyPart.entity.asInstanceOf[HttpEntity.Strict].data.utf8String
-              }
-              else if (bodyPart.name == "surname") {
-                myPers.surname = bodyPart.entity.asInstanceOf[HttpEntity.Strict].data.utf8String
-              }
-            }
 
-            val writeOperationFuture = partsSource.runWith(filePartsSink)
-            onComplete(writeOperationFuture) {
-              case Success(_) => {
-                var p = new P("bob", "smith")
+              val writeOperationFuture = partsSource.runWith(filePartsSink)
+              onComplete(writeOperationFuture) {
+                case Success(_) => {
+                  var p = new P("bob", "smith")
 
-                complete("File uploaded" + s"person uploaded ${myPers.firstName} ${myPers.surname}")
+                  complete("File uploaded" + s"person uploaded ${myPers.firstName} ${myPers.surname}")
+                }
+                case Failure(ex) => complete(s"File failed to upload $ex")
               }
-              case Failure(ex) => complete(s"File failed to upload $ex")
             }
           }
         }

@@ -6,6 +6,7 @@ import akka.http.scaladsl.model.{ContentTypes, HttpEntity, StatusCodes}
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import ch.megard.akka.http.cors.scaladsl.CorsDirectives._
+import com.typesafe.akka.extension.quartz.QuartzSchedulerExtension
 import com.varwise.akka.http.prometheus.PrometheusResponseTimeRecorder
 import com.varwise.akka.http.prometheus.api.{MetricFamilySamplesEntity, MetricsEndpoint}
 import com.varwise.akka.http.prometheus.directives.ResponseTimeRecordingDirectives
@@ -32,7 +33,7 @@ object WebServerBackup extends App with Marshallers  {
   val branchRepo = new BranchRepository
   val repo = new PersonRepository
   val treeReader = system.actorOf(Props[TreeImporter], "TreeImporter")
- // val scheduler = QuartzSchedulerExtension(system)
+  val scheduler = QuartzSchedulerExtension(system)
 
 //  scheduler.schedule("Every24Hours3", treeReader, ImportTree)
 
